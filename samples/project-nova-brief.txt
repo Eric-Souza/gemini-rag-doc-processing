@@ -1,0 +1,40 @@
+Project Nova — Internal Product Brief
+=====================================
+
+Codename: Nova
+Owner: Product Ops
+Status: Pilot
+Launch target: September 15, 2026
+
+Problem
+-------
+Support agents spend too long searching across PDFs and wiki pages to answer
+customer questions. Average handle time for policy questions is 7.4 minutes.
+
+Solution
+--------
+Nova is an internal document Q&A assistant. Agents upload policy PDFs, then
+ask natural-language questions. Answers must include source citations.
+
+Success metrics
+---------------
+1. Reduce policy-related handle time to under 3 minutes.
+2. Citation accuracy above 90% in weekly spot audits.
+3. At least 80% of Tier-1 agents use Nova weekly within 60 days of launch.
+
+Pilot scope
+-----------
+- Teams: Support Tier-1 (North America)
+- Document types: benefits handbook, refund policy, shipping SLA
+- Model: Google Gemini flash for chat; Gemini embedding model for retrieval
+
+Known constraints
+-----------------
+- Free-tier API quotas apply during the pilot.
+- No customer PII should be uploaded into the pilot corpus.
+- Chat history is not persisted server-side in v1.
+
+Contact
+-------
+Questions: nova-pilot@acme.example
+Escalation: Jordan Lee, Product Ops

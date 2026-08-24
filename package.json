@@ -1,0 +1,11 @@
+{
+  "name": "doc-processing-ai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Document Q&A with Gemini, LangChain/LangGraph, FastAPI, and React",
+  "scripts": {
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:api": "cd apps/api && .venv/Scripts/python -m uvicorn app.main:app --reload --port 8000",
+    "build:web": "npm --prefix apps/web run build"
+  }
+}
