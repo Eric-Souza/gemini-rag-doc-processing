@@ -1,0 +1,22 @@
+﻿Running 8 eval cases (LangSmith=off)...
+  -> benefits-deductible
+  -> benefits-wellness
+  -> benefits-pto
+  -> nova-launch
+  -> nova-handle-time
+  -> refund-window
+  -> shipping-overnight
+  -> damage-report
+
+id                       hit@k    contains   faithful  
+--------------------------------------------------------
+benefits-deductible      Y        Y          Y         
+benefits-wellness        Y        Y          Y         
+benefits-pto             Y        Y          Y         
+nova-launch              Y        Y          Y         
+nova-handle-time         Y        Y          Y         
+refund-window            Y        Y          Y         
+shipping-overnight       Y        Y          Y         
+damage-report            Y        Y          Y         
+--------------------------------------------------------
+AGGREGATE                  100%     100%       100%

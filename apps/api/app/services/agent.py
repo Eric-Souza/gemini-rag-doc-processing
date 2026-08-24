@@ -8,7 +8,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
 from app.services.llm import get_chat_model
-from app.services.rag import retrieve
+from app.services.rag import _run_config, retrieve
 
 _active_document_ids: list[str] | None = None
 _collected_citations: list[dict[str, Any]] = []
@@ -84,6 +84,8 @@ async def stream_agent(
     # Rebuild graph so tool closure / model pick up current settings after key changes
     _graph = _build_graph()
 
+    yield ("status", {"message": "Planning and retrieving…"})
+
     system = SystemMessage(
         content=(
             "You are a document Q&A agent. Use the retrieve_documents tool to find evidence "
@@ -91,8 +93,10 @@ async def stream_agent(
             "Do not invent facts not present in retrieved passages."
         )
     )
+    config = _run_config("agent", document_ids=document_ids)
     result = get_agent_graph().invoke(
-        {"messages": [system, HumanMessage(content=message)]}
+        {"messages": [system, HumanMessage(content=message)]},
+        config=config,
     )
 
     seen: set[tuple[str, str]] = set()
@@ -109,6 +113,8 @@ async def stream_agent(
         text = "".join(
             part.get("text", "") if isinstance(part, dict) else str(part) for part in text
         )
+
+    yield ("status", {"message": "Streaming answer…"})
 
     # Stream in small chunks for UX parity with RAG
     content = str(text or "")

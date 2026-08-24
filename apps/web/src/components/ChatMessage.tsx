@@ -1,6 +1,6 @@
-import { Box, Typography } from '@mui/material'
+import { Box, CircularProgress, Stack, Typography } from '@mui/material'
 import { keyframes } from '@mui/system'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import type { ChatMessage } from '../types'
 import { CitationList } from './CitationList'
 
@@ -17,6 +17,7 @@ type Props = {
 
 export function ChatBubble({ message }: Props) {
   const isUser = message.role === 'user'
+  const showStatus = Boolean(message.streaming && message.status)
 
   return (
     <MotionBox
@@ -41,26 +42,48 @@ export function ChatBubble({ message }: Props) {
           borderColor: 'divider',
         }}
       >
-        <Typography
-          variant="body1"
-          sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-        >
-          {message.content || (message.streaming ? '' : '…')}
-          {message.streaming && (
-            <Box
-              component="span"
-              sx={{
-                display: 'inline-block',
-                width: 8,
-                height: '1.1em',
-                ml: 0.5,
-                bgcolor: 'primary.main',
-                verticalAlign: 'text-bottom',
-                animation: `${pulse} 1s ease-in-out infinite`,
-              }}
-            />
+        <AnimatePresence mode="wait">
+          {showStatus && (
+            <MotionBox
+              key={message.status}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2 }}
+              sx={{ mb: message.content ? 1 : 0 }}
+            >
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <CircularProgress size={14} thickness={5} color="primary" />
+                <Typography variant="body2" color="text.secondary">
+                  {message.status}
+                </Typography>
+              </Stack>
+            </MotionBox>
           )}
-        </Typography>
+        </AnimatePresence>
+
+        {(message.content || (message.streaming && !showStatus)) && (
+          <Typography
+            variant="body1"
+            sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+          >
+            {message.content || (message.streaming ? '' : '…')}
+            {message.streaming && message.content && (
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-block',
+                  width: 8,
+                  height: '1.1em',
+                  ml: 0.5,
+                  bgcolor: 'primary.main',
+                  verticalAlign: 'text-bottom',
+                  animation: `${pulse} 1s ease-in-out infinite`,
+                }}
+              />
+            )}
+          </Typography>
+        )}
         {!isUser && message.citations && (
           <CitationList citations={message.citations} />
         )}

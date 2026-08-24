@@ -14,3 +14,6 @@ Suggested flow:
 2. Open **Chat** → mode **RAG**
 3. Ask one of the questions above; confirm citation chips appear
 4. Switch to **Agent** and ask a multi-part question across policies
+
+Automated checks: after these files are indexed (`ready`), run
+`python -m evals.run_evals` from `apps/api` (see `apps/api/evals/`).

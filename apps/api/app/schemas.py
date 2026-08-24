@@ -9,6 +9,7 @@ from app.models import DocumentStatus
 class HealthResponse(BaseModel):
     status: str
     gemini_configured: bool
+    langsmith_configured: bool = False
     chat_model: str = ""
     embed_model: str = ""
 

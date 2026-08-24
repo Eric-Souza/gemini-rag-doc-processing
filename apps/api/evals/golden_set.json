@@ -1,0 +1,58 @@
+[
+  {
+    "id": "benefits-deductible",
+    "question": "What is the Acme Care Plus deductible for an individual?",
+    "expected_filenames": ["acme-benefits.md"],
+    "must_contain": ["1000", "$1,000", "$1000"],
+    "k": 4
+  },
+  {
+    "id": "benefits-wellness",
+    "question": "How much is the annual wellness stipend?",
+    "expected_filenames": ["acme-benefits.md"],
+    "must_contain": ["600", "$600"],
+    "k": 4
+  },
+  {
+    "id": "benefits-pto",
+    "question": "How many PTO days do employees get in years 0-2?",
+    "expected_filenames": ["acme-benefits.md"],
+    "must_contain": ["15"],
+    "k": 4
+  },
+  {
+    "id": "nova-launch",
+    "question": "What is Project Nova's launch target date?",
+    "expected_filenames": ["project-nova-brief.txt"],
+    "must_contain": ["September 15", "2026", "September 15, 2026"],
+    "k": 4
+  },
+  {
+    "id": "nova-handle-time",
+    "question": "What is the target handle time for policy questions with Nova?",
+    "expected_filenames": ["project-nova-brief.txt"],
+    "must_contain": ["3 minutes", "under 3"],
+    "k": 4
+  },
+  {
+    "id": "refund-window",
+    "question": "How many days do customers have to request a refund after delivery?",
+    "expected_filenames": ["refund-shipping-policy.md"],
+    "must_contain": ["30"],
+    "k": 4
+  },
+  {
+    "id": "shipping-overnight",
+    "question": "What is the cost of overnight shipping?",
+    "expected_filenames": ["refund-shipping-policy.md"],
+    "must_contain": ["29.99", "$29.99"],
+    "k": 4
+  },
+  {
+    "id": "damage-report",
+    "question": "Within how many hours must damaged items be reported?",
+    "expected_filenames": ["refund-shipping-policy.md"],
+    "must_contain": ["48"],
+    "k": 4
+  }
+]

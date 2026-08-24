@@ -12,6 +12,7 @@ async def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         gemini_configured=settings.gemini_configured,
+        langsmith_configured=settings.langsmith_configured,
         chat_model=settings.gemini_chat_model,
         embed_model=settings.gemini_embed_model,
     )

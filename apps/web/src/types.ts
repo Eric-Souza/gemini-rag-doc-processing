@@ -27,9 +27,13 @@ export interface ChatMessage {
   content: string
   citations?: Citation[]
   streaming?: boolean
+  status?: string
 }
 
 export interface HealthResponse {
   status: string
   gemini_configured: boolean
+  langsmith_configured?: boolean
+  chat_model?: string
+  embed_model?: string
 }

@@ -58,6 +58,7 @@ export function ChatPage() {
       content: '',
       citations: [],
       streaming: true,
+      status: 'Connecting…',
     }
 
     setMessages((prev) => [...prev, userMsg, assistantMsg])
@@ -66,6 +67,7 @@ export function ChatPage() {
     setError(null)
 
     const citations: Citation[] = []
+    let sawToken = false
 
     try {
       await streamChat(
@@ -75,10 +77,20 @@ export function ChatPage() {
           document_ids: selected.length ? selected.map((d) => d.id) : undefined,
         },
         {
-          onToken: (token) => {
+          onStatus: (status) => {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === assistantId ? { ...m, content: m.content + token } : m,
+                m.id === assistantId ? { ...m, status } : m,
+              ),
+            )
+          },
+          onToken: (token) => {
+            sawToken = true
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? { ...m, content: m.content + token, status: undefined }
+                  : m,
               ),
             )
           },
@@ -93,7 +105,9 @@ export function ChatPage() {
           onDone: () => {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === assistantId ? { ...m, streaming: false } : m,
+                m.id === assistantId
+                  ? { ...m, streaming: false, status: undefined }
+                  : m,
               ),
             )
           },
@@ -105,6 +119,7 @@ export function ChatPage() {
                   ? {
                       ...m,
                       streaming: false,
+                      status: undefined,
                       content: m.content || `Error: ${message}`,
                     }
                   : m,
@@ -113,20 +128,37 @@ export function ChatPage() {
           },
         },
       )
+      if (!sawToken) {
+        // ensure status cleared if stream ended without tokens
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, status: undefined } : m,
+          ),
+        )
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Chat failed'
       setError(msg)
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, streaming: false, content: m.content || `Error: ${msg}` }
+            ? {
+                ...m,
+                streaming: false,
+                status: undefined,
+                content: m.content || `Error: ${msg}`,
+              }
             : m,
         ),
       )
     } finally {
       setStreaming(false)
       setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m)),
+        prev.map((m) =>
+          m.id === assistantId
+            ? { ...m, streaming: false, status: undefined }
+            : m,
+        ),
       )
     }
   }

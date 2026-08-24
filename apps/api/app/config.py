@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve paths relative to apps/api (this file lives in apps/api/app/)
@@ -26,6 +27,23 @@ class Settings(BaseSettings):
     upload_dir: str = str(API_ROOT / "data" / "uploads")
     cors_origins: str = "http://localhost:5173"
 
+    langsmith_api_key: str = ""
+    langchain_api_key: str = ""
+    langsmith_tracing: bool | None = None
+    langsmith_project: str = "doc-processing-ai"
+
+    @model_validator(mode="after")
+    def _resolve_langsmith(self) -> "Settings":
+        if not self.langsmith_api_key.strip() and self.langchain_api_key.strip():
+            self.langsmith_api_key = self.langchain_api_key
+        if self.langsmith_tracing is None:
+            object.__setattr__(
+                self,
+                "langsmith_tracing",
+                bool(self.langsmith_api_key.strip()),
+            )
+        return self
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
@@ -34,7 +52,28 @@ class Settings(BaseSettings):
     def gemini_configured(self) -> bool:
         return bool(self.gemini_api_key.strip())
 
+    @property
+    def langsmith_configured(self) -> bool:
+        return bool(self.langsmith_api_key.strip()) and bool(self.langsmith_tracing)
+
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def apply_langsmith_env(settings: Settings | None = None) -> None:
+    """Export LangSmith env vars so LangChain/LangGraph auto-trace."""
+    import os
+
+    s = settings or get_settings()
+    if s.langsmith_configured:
+        os.environ["LANGSMITH_TRACING"] = "true"
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        os.environ["LANGSMITH_API_KEY"] = s.langsmith_api_key
+        os.environ["LANGCHAIN_API_KEY"] = s.langsmith_api_key
+        os.environ["LANGSMITH_PROJECT"] = s.langsmith_project
+        os.environ["LANGCHAIN_PROJECT"] = s.langsmith_project
+    else:
+        os.environ["LANGSMITH_TRACING"] = "false"
+        os.environ["LANGCHAIN_TRACING_V2"] = "false"

@@ -43,6 +43,7 @@ export async function deleteDocument(id: string): Promise<void> {
 export type ChatStreamHandlers = {
   onToken: (text: string) => void
   onCitation: (citation: Citation) => void
+  onStatus?: (message: string) => void
   onDone: () => void
   onError: (message: string) => void
 }
@@ -90,7 +91,9 @@ export async function streamChat(
           score?: number | null
         }
         if (event.event === 'token' && event.text) handlers.onToken(event.text)
-        else if (event.event === 'citation') {
+        else if (event.event === 'status' && event.message) {
+          handlers.onStatus?.(event.message)
+        } else if (event.event === 'citation') {
           handlers.onCitation({
             document_id: event.document_id ?? '',
             filename: event.filename ?? 'unknown',

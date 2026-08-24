@@ -4,19 +4,21 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import get_settings
+from app.config import apply_langsmith_env, get_settings
 from app.db import init_db
 from app.routers import chat, documents, health
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    apply_langsmith_env()
     await init_db()
     yield
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    apply_langsmith_env(settings)
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
     Path(settings.chroma_path).mkdir(parents=True, exist_ok=True)
     Path(settings.upload_dir).parent.mkdir(parents=True, exist_ok=True)
