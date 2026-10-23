@@ -63,11 +63,10 @@ When LangSmith is configured, each case also logs feedback scores to the project
 
 ## Data on disk
 
-- `data/app.db` — SQLite document metadata
-- `data/uploads/` — original files
-- `data/chroma/` — vector store
+- `data/uploads/` — original files (gitignored, except `.gitkeep`)
 
-All under `data/` are gitignored (except `.gitkeep`).
+Document metadata, chunks, embeddings, and the full-text index all live in Postgres
+(`docker compose up -d db` from the repo root).
 
 ## Main endpoints
 
@@ -75,7 +74,7 @@ All under `data/` are gitignored (except `.gitkeep`).
 - `POST /documents` — upload (PDF, TXT, MD)
 - `GET /documents` — list
 - `GET /documents/{id}` — detail
-- `DELETE /documents/{id}` — remove doc + vectors
+- `DELETE /documents/{id}` — remove doc (chunks cascade)
 - `POST /chat` — SSE stream (`mode`: `rag` | `agent`)
 
 ### SSE event payload
@@ -91,6 +90,7 @@ Each `data:` line is JSON with an `event` field:
 ## Architecture notes
 
 - Ingest runs in `BackgroundTasks` after upload
-- Chroma filters by `document_id` metadata when the client scopes chat to selected docs
+- Retrieval (`app/services/retrieval/`): pgvector cosine search + Postgres full-text search, fused with RRF, reranked by a local cross-encoder. `RETRIEVAL_MODE` picks `vector`, `hybrid`, or `hybrid_rerank`
+- Both searches filter by `document_id` when the client scopes chat to selected docs
 - Agent mode uses LangGraph with a `retrieve_documents` tool
 - RAG/Agent LLM calls pass LangSmith tags/metadata (`mode:rag|agent`)

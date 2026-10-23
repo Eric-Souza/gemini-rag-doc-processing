@@ -3,6 +3,7 @@
     "id": "benefits-deductible",
     "question": "What is the Acme Care Plus deductible for an individual?",
     "expected_filenames": ["acme-benefits.md"],
+    "evidence": "Deductible: $1,000",
     "must_contain": ["1000", "$1,000", "$1000"],
     "k": 4
   },
@@ -10,6 +11,7 @@
     "id": "benefits-wellness",
     "question": "How much is the annual wellness stipend?",
     "expected_filenames": ["acme-benefits.md"],
+    "evidence": "$600 annual wellness stipend",
     "must_contain": ["600", "$600"],
     "k": 4
   },
@@ -17,6 +19,7 @@
     "id": "benefits-pto",
     "question": "How many PTO days do employees get in years 0-2?",
     "expected_filenames": ["acme-benefits.md"],
+    "evidence": "Years 0-2: 15 days",
     "must_contain": ["15"],
     "k": 4
   },
@@ -24,6 +27,7 @@
     "id": "nova-launch",
     "question": "What is Project Nova's launch target date?",
     "expected_filenames": ["project-nova-brief.txt"],
+    "evidence": "Launch target: September 15, 2026",
     "must_contain": ["September 15", "2026", "September 15, 2026"],
     "k": 4
   },
@@ -31,6 +35,7 @@
     "id": "nova-handle-time",
     "question": "What is the target handle time for policy questions with Nova?",
     "expected_filenames": ["project-nova-brief.txt"],
+    "evidence": "under 3 minutes",
     "must_contain": ["3 minutes", "under 3"],
     "k": 4
   },
@@ -38,6 +43,7 @@
     "id": "refund-window",
     "question": "How many days do customers have to request a refund after delivery?",
     "expected_filenames": ["refund-shipping-policy.md"],
+    "evidence": "30 days",
     "must_contain": ["30"],
     "k": 4
   },
@@ -45,6 +51,7 @@
     "id": "shipping-overnight",
     "question": "What is the cost of overnight shipping?",
     "expected_filenames": ["refund-shipping-policy.md"],
+    "evidence": "$29.99",
     "must_contain": ["29.99", "$29.99"],
     "k": 4
   },
@@ -52,7 +59,120 @@
     "id": "damage-report",
     "question": "Within how many hours must damaged items be reported?",
     "expected_filenames": ["refund-shipping-policy.md"],
+    "evidence": "within 48 hours",
     "must_contain": ["48"],
+    "k": 4
+  },
+  {
+    "id": "runbook-err-4021",
+    "question": "What should on-call do about ERR-4021?",
+    "expected_filenames": ["it-incident-runbook.md"],
+    "evidence": "ERR-4021: OAuth token refresh failed",
+    "must_contain": ["vault", "secret"],
+    "k": 4
+  },
+  {
+    "id": "runbook-err-4012",
+    "question": "How many seconds before ERR-4012 is raised?",
+    "expected_filenames": ["it-incident-runbook.md"],
+    "evidence": "within 8 seconds",
+    "must_contain": ["8 seconds", "8"],
+    "k": 4
+  },
+  {
+    "id": "runbook-err-5003",
+    "question": "Which job should be paused for repeated ERR-5003 errors?",
+    "expected_filenames": ["it-incident-runbook.md"],
+    "evidence": "nightly-reconcile",
+    "must_contain": ["nightly-reconcile"],
+    "k": 4
+  },
+  {
+    "id": "runbook-sev1-status",
+    "question": "How quickly must the status page be updated for a Severity 1 incident?",
+    "expected_filenames": ["it-incident-runbook.md"],
+    "evidence": "status page update within 15 minutes",
+    "must_contain": ["15 minutes", "15"],
+    "k": 4
+  },
+  {
+    "id": "travel-2026-per-diem",
+    "question": "What is the domestic meal per diem in the 2026 travel policy?",
+    "expected_filenames": ["travel-policy-2026.md"],
+    "evidence": "$75 for domestic travel",
+    "must_contain": ["$75", "75"],
+    "k": 4
+  },
+  {
+    "id": "travel-2025-hotel-cap",
+    "question": "What was the high-cost city hotel cap under the 2025 travel policy?",
+    "expected_filenames": ["travel-policy-2025.md"],
+    "evidence": "$275 in high-cost cities",
+    "must_contain": ["$275", "275"],
+    "k": 4
+  },
+  {
+    "id": "travel-2026-expense-deadline",
+    "question": "How many days do employees have to submit expense reports under the current 2026 policy?",
+    "expected_filenames": ["travel-policy-2026.md"],
+    "evidence": "within 21 days",
+    "must_contain": ["21"],
+    "k": 4
+  },
+  {
+    "id": "travel-2026-rail",
+    "question": "When is rail travel required?",
+    "expected_filenames": ["travel-policy-2026.md"],
+    "evidence": "Rail is required for trips under 4 hours",
+    "must_contain": ["4 hours", "under 4"],
+    "k": 4
+  },
+  {
+    "id": "catalog-nv220x-battery",
+    "question": "What is the battery life of the NV-220X?",
+    "expected_filenames": ["product-catalog.md"],
+    "evidence": "Battery life: 28 hours",
+    "must_contain": ["28"],
+    "k": 4
+  },
+  {
+    "id": "catalog-nv220-price",
+    "question": "How much does the NV-220 wired headset cost?",
+    "expected_filenames": ["product-catalog.md"],
+    "evidence": "Price: $49",
+    "must_contain": ["$49", "49"],
+    "k": 4
+  },
+  {
+    "id": "catalog-sp30-room",
+    "question": "How many people can the SP-30 handle?",
+    "expected_filenames": ["product-catalog.md"],
+    "evidence": "rooms of up to 12 people",
+    "must_contain": ["12"],
+    "k": 4
+  },
+  {
+    "id": "security-lost-device",
+    "question": "How soon must a lost laptop be reported?",
+    "expected_filenames": ["security-policy.md"],
+    "evidence": "reported to IT within 1 hour",
+    "must_contain": ["1 hour", "one hour"],
+    "k": 4
+  },
+  {
+    "id": "security-incident-report",
+    "question": "What is the deadline for reporting a suspected security incident?",
+    "expected_filenames": ["security-policy.md"],
+    "evidence": "within 24 hours of discovery",
+    "must_contain": ["24"],
+    "k": 4
+  },
+  {
+    "id": "security-password-length",
+    "question": "What is the minimum password length?",
+    "expected_filenames": ["security-policy.md"],
+    "evidence": "at least 14 characters",
+    "must_contain": ["14"],
     "k": 4
   }
 ]

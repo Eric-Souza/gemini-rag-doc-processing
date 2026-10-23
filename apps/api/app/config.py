@@ -22,8 +22,16 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_chat_model: str = "gemini-3.6-flash"
     gemini_embed_model: str = "gemini-embedding-001"
-    database_url: str = f"sqlite+aiosqlite:///{(API_ROOT / 'data' / 'app.db').as_posix()}"
-    chroma_path: str = str(API_ROOT / "data" / "chroma")
+    # Postgres + pgvector (see docker-compose.yml at the repo root)
+    database_url: str = "postgresql+asyncpg://rag:rag@localhost:5432/rag"
+    # gemini-embedding-001 supports reduced output sizes; 768 keeps HNSW indexes small
+    embed_dim: int = 768
+
+    # Retrieval: "vector", "hybrid" (full-text + vector, RRF), or "hybrid_rerank"
+    retrieval_mode: str = "hybrid_rerank"
+    retrieval_candidates: int = 20
+    rrf_k: int = 60
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     upload_dir: str = str(API_ROOT / "data" / "uploads")
     cors_origins: str = "http://localhost:5173"
 

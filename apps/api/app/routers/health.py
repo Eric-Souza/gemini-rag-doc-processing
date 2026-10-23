@@ -15,4 +15,5 @@ async def health() -> HealthResponse:
         langsmith_configured=settings.langsmith_configured,
         chat_model=settings.gemini_chat_model,
         embed_model=settings.gemini_embed_model,
+        retrieval_mode=settings.retrieval_mode,
     )
