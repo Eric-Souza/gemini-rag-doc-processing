@@ -1,7 +1,7 @@
 # Doc Processing AI
 
 Full-stack project for LLM/RAG engineering: upload documents, embed with
-Google Gemini, retrieve with Chroma, answer with LangChain/LangGraph, serve via
+Google Gemini, retrieve with hybrid search (pgvector + Postgres full-text, RRF, cross-encoder rerank), answer with LangChain/LangGraph, serve via
 FastAPI, and chat from a React TypeScript UI.
 
 ## Stack
@@ -11,13 +11,14 @@ FastAPI, and chat from a React TypeScript UI.
 - LLM / embeddings: Google Gemini (AI Studio free API key)
 - Orchestration: LangChain + LangGraph
 - Observability: LangSmith tracing (optional)
-- Metadata DB: SQLite (SQLAlchemy async)
-- Vectors: Chroma (local disk)
+- Database: Postgres 16 + pgvector (SQLAlchemy async + asyncpg), via Docker
+- Retrieval: vector + full-text search, Reciprocal Rank Fusion, local cross-encoder reranker (`sentence-transformers`)
 
 ## Prerequisites
 
 - Node.js 20+
 - Python 3.11+
+- Docker (for Postgres + pgvector)
 - A free Gemini API key from https://aistudio.google.com/apikey
 - Optional: LangSmith API key from https://smith.langchain.com for tracing/evals
 
@@ -31,17 +32,23 @@ FastAPI, and chat from a React TypeScript UI.
    # optional: set LANGSMITH_API_KEY=...
    ```
 
-2. Backend:
+2. Database:
+
+   ```bash
+   docker compose up -d db
+   ```
+
+3. Backend:
 
    ```bash
    cd apps/api
    python -m venv .venv
    # Windows: .venv\Scripts\activate
-   pip install -e .
+   pip install -e ".[rerank]"   # drop [rerank] and set RETRIEVAL_MODE=hybrid to skip torch
    uvicorn app.main:app --reload --port 8000
    ```
 
-3. Frontend (new terminal):
+4. Frontend (new terminal):
 
    ```bash
    cd apps/web
@@ -49,14 +56,14 @@ FastAPI, and chat from a React TypeScript UI.
    npm run dev
    ```
 
-4. Open http://localhost:5173 — upload a PDF/TXT, wait until status is `ready`, chat.
+5. Open http://localhost:5173 — upload a PDF/TXT, wait until status is `ready`, chat.
 
-5. (Optional) Run retrieval/answer evals after indexing `samples/`:
+6. (Optional) Run evals. `--seed` indexes `samples/` first; the run compares vector, hybrid, and hybrid + rerank:
 
    ```bash
    cd apps/api
    .\.venv\Scripts\activate
-   python -m evals.run_evals
+   python -m evals.run_evals --seed
    ```
 
 ## Project structure
@@ -71,7 +78,7 @@ doc-processing-ai/
     api/          # FastAPI backend (+ evals/)
 ```
 
-Runtime data (`app.db`, uploads, Chroma) lives under `apps/api/data/` and is gitignored.
+Uploaded files live under `apps/api/data/uploads/` (gitignored); everything else is in Postgres.
 
 ## Features
 
@@ -81,7 +88,8 @@ Runtime data (`app.db`, uploads, Chroma) lives under `apps/api/data/` and is git
 - LangSmith tracing for LLM/agent runs
 - Golden-set retrieval evals (hit@k, answer contains, faithfulness)
 - Google Gemini for chat and embeddings
-- SQLite for document metadata; Chroma for vectors
+- Postgres + pgvector for metadata, chunks, embeddings, and the full-text index
+- Hybrid retrieval with RRF fusion and a local reranker
 
 ## In progress: production RAG upgrade
 

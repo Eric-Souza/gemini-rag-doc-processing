@@ -30,7 +30,7 @@ question
 | Vector store | Chroma (local disk) | Postgres + pgvector (Docker locally, Neon free tier hosted) |
 | Keyword search | None | Postgres full-text search (`tsvector` + GIN index) |
 | Fusion | None | Reciprocal Rank Fusion (RRF) |
-| Reranker | None | `BAAI/bge-reranker-base` cross-encoder via `sentence-transformers`, running locally on CPU |
+| Reranker | None | `cross-encoder/ms-marco-MiniLM-L-6-v2` cross-encoder (configurable via `RERANKER_MODEL`) via `sentence-transformers`, running locally on CPU |
 | Metadata DB | SQLite | Postgres (same database as vectors) |
 | Evals | Custom golden set (hit@k, contains, faithfulness) | Golden set kept, plus RAGAS: faithfulness, answer relevancy, context precision, context recall |
 | CI | None | GitHub Actions: evals on every PR, fail below baseline |
@@ -38,9 +38,9 @@ question
 
 ## Milestones
 
-- [ ] **1. Postgres + pgvector:** `docker-compose.yml`, SQLAlchemy models for documents and chunks, pgvector column, migrate ingestion off Chroma
-- [ ] **2. Hybrid search:** full-text index, vector search, RRF fusion in `services/retrieval/`
-- [ ] **3. Reranker:** cross-encoder rerank step with configurable candidate count and top-k
+- [x] **1. Postgres + pgvector:** `docker-compose.yml`, SQLAlchemy models for documents and chunks, pgvector column, migrate ingestion off Chroma
+- [x] **2. Hybrid search:** full-text index, vector search, RRF fusion in `services/retrieval/`
+- [x] **3. Reranker:** cross-encoder rerank step with configurable candidate count and top-k
 - [ ] **4. Retrieval comparison:** eval runs for vector-only vs hybrid vs hybrid + rerank, results table in this doc
 - [ ] **5. RAGAS evals:** `evals/ragas/` suite with a stored baseline (`baseline.json`)
 - [ ] **6. CI quality gate:** `.github/workflows/evals.yml` runs evals and fails on regression

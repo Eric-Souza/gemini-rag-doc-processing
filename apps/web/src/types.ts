@@ -36,4 +36,5 @@ export interface HealthResponse {
   langsmith_configured?: boolean
   chat_model?: string
   embed_model?: string
+  retrieval_mode?: string
 }
