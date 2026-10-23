@@ -69,6 +69,12 @@ Where it hurt:
 
 Caveat: with only 17 chunks, every mode finds the evidence somewhere in the top 4, so hit@4 can't tell the modes apart. hit@1 and MRR are the numbers to watch until the corpus grows.
 
+### Answers
+
+`python -m evals.run_evals --mode hybrid_rerank` scores every answer with an expected-phrase check and a faithfulness judge (the judge checks the answer only uses the retrieved context). With hybrid + rerank retrieval: **contains 100%, faithful 100%** (22/22).
+
+The answer evals run on `GEMINI_EVAL_MODEL` (`gemini-3.5-flash-lite`), not the app's chat model. The Gemini free tier allows only 20 requests per day for `gemini-3.6-flash`, and one run needs 44 (answer + judge per case). The runner keeps requests under the per-minute limit (`--rpm`, default 5), waits and retries on per-minute 429s, and stops with a clear message once the daily quota is used up.
+
 ## Planned structure
 
 ```

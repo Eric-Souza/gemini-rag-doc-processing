@@ -21,6 +21,8 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
     gemini_chat_model: str = "gemini-3.6-flash"
+    # Evals (answers + judge) run on a lite model: the free tier allows far more requests per day
+    gemini_eval_model: str = "gemini-3.5-flash-lite"
     gemini_embed_model: str = "gemini-embedding-001"
     # Postgres + pgvector (see docker-compose.yml at the repo root)
     database_url: str = "postgresql+asyncpg://rag:rag@localhost:5432/rag"

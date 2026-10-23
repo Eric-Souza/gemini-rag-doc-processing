@@ -62,12 +62,13 @@ async def answer_rag(
     k: int = 4,
     case_id: str | None = None,
     mode: str | None = None,
+    model: str | None = None,
 ) -> dict[str, Any]:
     """Non-streaming RAG used by evals (and any sync callers)."""
     hits = await retrieve(message, k=k, document_ids=document_ids, mode=mode)
     citations = _citations_from_hits(hits)
     context = _format_context(hits)
-    llm = get_chat_model()
+    llm = get_chat_model(model)
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=f"Context:\n{context}\n\nQuestion: {message}\n\nAnswer:"),
