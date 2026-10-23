@@ -8,7 +8,8 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
 from app.services.llm import get_chat_model
-from app.services.rag import _run_config, retrieve
+from app.services.rag import _run_config
+from app.services.retrieval import retrieve
 
 _active_document_ids: list[str] | None = None
 _collected_citations: list[dict[str, Any]] = []
@@ -19,24 +20,22 @@ class AgentState(TypedDict):
 
 
 @tool
-def retrieve_documents(query: str) -> str:
+async def retrieve_documents(query: str) -> str:
     """Search uploaded documents for passages relevant to the query."""
-    global _collected_citations
-    hits = retrieve(query, document_ids=_active_document_ids, k=4)
+    hits = await retrieve(query, k=4, document_ids=_active_document_ids)
     if not hits:
         return "No relevant passages found."
     parts: list[str] = []
-    for i, (doc, score) in enumerate(hits, start=1):
-        citation = {
-            "document_id": doc.metadata.get("document_id", ""),
-            "filename": doc.metadata.get("filename", "unknown"),
-            "excerpt": doc.page_content[:400],
-            "score": float(score) if score is not None else None,
-        }
-        _collected_citations.append(citation)
-        parts.append(
-            f"[{i}] {citation['filename']} (score={score:.3f})\n{doc.page_content}"
+    for i, hit in enumerate(hits, start=1):
+        _collected_citations.append(
+            {
+                "document_id": hit.document_id,
+                "filename": hit.filename,
+                "excerpt": hit.content[:400],
+                "score": hit.score,
+            }
         )
+        parts.append(f"[{i}] {hit.filename} (score={hit.score:.3f})\n{hit.content}")
     return "\n\n".join(parts)
 
 
@@ -45,8 +44,8 @@ def _build_graph():
     llm = get_chat_model().bind_tools(tools)
     tool_node = ToolNode(tools)
 
-    def agent_node(state: AgentState) -> dict[str, list[BaseMessage]]:
-        response = llm.invoke(state["messages"])
+    async def agent_node(state: AgentState) -> dict[str, list[BaseMessage]]:
+        response = await llm.ainvoke(state["messages"])
         return {"messages": [response]}
 
     def should_continue(state: AgentState) -> str:
@@ -78,9 +77,9 @@ async def stream_agent(
     message: str,
     document_ids: list[str] | None = None,
 ) -> AsyncIterator[tuple[str, dict[str, Any]]]:
-    global _active_document_ids, _collected_citations, _graph
+    global _active_document_ids, _graph
     _active_document_ids = document_ids
-    _collected_citations = []
+    _collected_citations.clear()
     # Rebuild graph so tool closure / model pick up current settings after key changes
     _graph = _build_graph()
 
@@ -94,7 +93,7 @@ async def stream_agent(
         )
     )
     config = _run_config("agent", document_ids=document_ids)
-    result = get_agent_graph().invoke(
+    result = await get_agent_graph().ainvoke(
         {"messages": [system, HumanMessage(content=message)]},
         config=config,
     )

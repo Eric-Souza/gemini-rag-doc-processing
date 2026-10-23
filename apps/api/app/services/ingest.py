@@ -1,13 +1,14 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from langchain_core.documents import Document as LCDocument
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
+from sqlalchemy import delete
+
 from app.config import get_settings
 from app.db import AsyncSessionLocal
-from app.models import Document, DocumentStatus
-from app.services.vectorstore import get_vectorstore
+from app.models import Chunk, Document, DocumentStatus
+from app.services.llm import embed_documents
 
 
 def _utcnow() -> datetime:
@@ -44,33 +45,30 @@ async def ingest_document(document_id: str) -> None:
 
             splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
             chunks = splitter.split_text(text)
-            lc_docs = [
-                LCDocument(
-                    page_content=chunk,
-                    metadata={
-                        "document_id": doc.id,
-                        "filename": doc.filename,
-                        "chunk_index": i,
-                    },
+            embeddings = await embed_documents(chunks)
+
+            # Re-ingest safety: replace any chunks from a previous run
+            await db.execute(delete(Chunk).where(Chunk.document_id == doc.id))
+            db.add_all(
+                Chunk(
+                    id=f"{doc.id}_{i}",
+                    document_id=doc.id,
+                    chunk_index=i,
+                    content=chunk,
+                    embedding=embedding,
                 )
-                for i, chunk in enumerate(chunks)
-            ]
+                for i, (chunk, embedding) in enumerate(zip(chunks, embeddings, strict=True))
+            )
 
-            store = get_vectorstore()
-            # Remove any prior vectors for this doc (re-ingest safety)
-            try:
-                store.delete(where={"document_id": doc.id})
-            except Exception:
-                pass
-            ids = [f"{doc.id}_{i}" for i in range(len(lc_docs))]
-            store.add_documents(lc_docs, ids=ids)
-
-            doc.chunk_count = len(lc_docs)
+            doc.chunk_count = len(chunks)
             doc.status = DocumentStatus.ready
             doc.error_message = None
             doc.updated_at = _utcnow()
             await db.commit()
         except Exception as exc:  # noqa: BLE001
+            await db.rollback()
+            # Rollback expires loaded objects; reload before recording the failure
+            doc = await db.get(Document, document_id)
             doc.status = DocumentStatus.failed
             doc.error_message = str(exc)
             doc.updated_at = _utcnow()
