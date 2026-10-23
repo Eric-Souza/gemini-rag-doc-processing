@@ -27,11 +27,13 @@ import json
 import re
 import shutil
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_google_genai.chat_models import GoogleRateLimitError
 from sqlalchemy import select
 
 # Ensure apps/api is on path when run as a script
@@ -73,7 +75,7 @@ def evidence_rank(hits: list[Candidate], evidence: str) -> int | None:
 
 
 async def score_faithfulness(context: str, answer: str) -> bool:
-    llm = get_chat_model()
+    llm = get_chat_model(get_settings().gemini_eval_model)
     messages = [
         SystemMessage(
             content=(
@@ -212,16 +214,54 @@ async def run_retrieval(cases: list[dict[str, Any]], mode: RetrievalMode) -> dic
     }
 
 
-async def run_answers(cases: list[dict[str, Any]], mode: RetrievalMode) -> dict[str, Any]:
+class Pacer:
+    """Spaces out chat calls to stay under the Gemini free tier's requests-per-minute limit,
+    and waits out a 429 using the retry delay the API suggests."""
+
+    def __init__(self, rpm: float, retries: int = 3) -> None:
+        self.interval = 60 / rpm if rpm > 0 else 0.0
+        self.retries = retries
+        self._next = 0.0
+
+    async def call(self, fn, *args, **kwargs):
+        for attempt in range(self.retries + 1):
+            wait = self._next - time.monotonic()
+            if wait > 0:
+                await asyncio.sleep(wait)
+            self._next = time.monotonic() + self.interval
+            try:
+                return await fn(*args, **kwargs)
+            except GoogleRateLimitError as exc:
+                if "PerDay" in str(exc):
+                    raise SystemExit(
+                        "Gemini free-tier daily request quota is used up for this model. "
+                        "Retry tomorrow or set GEMINI_CHAT_MODEL to a model with quota left."
+                    ) from exc
+                if attempt == self.retries:
+                    raise
+                match = re.search(r"retry in ([\d.]+)s", str(exc))
+                delay = float(match.group(1)) + 1 if match else 60.0
+                print(f"     rate limited, retrying in {delay:.0f}s")
+                await asyncio.sleep(delay)
+
+
+async def run_answers(cases: list[dict[str, Any]], mode: RetrievalMode, pacer: Pacer) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     for case in cases:
         print(f"  -> {case['id']}")
         k = int(case.get("k", 4))
-        result = await answer_rag(case["question"], k=k, case_id=case["id"], mode=mode)
+        result = await pacer.call(
+            answer_rag,
+            case["question"],
+            k=k,
+            case_id=case["id"],
+            mode=mode,
+            model=get_settings().gemini_eval_model,
+        )
         answer = result["answer"]
         hit = evidence_rank(result["hits"], case["evidence"]) is not None
         contains = score_contains(answer, case["must_contain"])
-        faithful = await score_faithfulness(result["context"], answer)
+        faithful = await pacer.call(score_faithfulness, result["context"], answer)
         _log_langsmith_feedback(case["id"], case["question"], answer, hit, contains, faithful)
         rows.append(
             {"id": case["id"], "hit": hit, "contains": contains, "faithful": faithful, "answer": answer}
@@ -282,6 +322,12 @@ async def main() -> None:
         help="retrieval mode for the answer evals (default: RETRIEVAL_MODE setting)",
     )
     parser.add_argument("--retrieval-only", action="store_true", help="skip answer evals (no chat calls)")
+    parser.add_argument(
+        "--rpm",
+        type=float,
+        default=5,
+        help="max chat requests per minute (Gemini free tier: 5; 0 disables pacing)",
+    )
     args = parser.parse_args()
 
     apply_langsmith_env()
@@ -305,6 +351,7 @@ async def main() -> None:
     report: dict[str, Any] = {
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "chat_model": settings.gemini_chat_model,
+        "eval_model": settings.gemini_eval_model,
         "embed_model": settings.gemini_embed_model,
         "reranker_model": settings.reranker_model,
         "retrieval": retrieval_results,
@@ -313,10 +360,10 @@ async def main() -> None:
     if not args.retrieval_only:
         mode = RetrievalMode(args.mode or settings.retrieval_mode)
         print(
-            f"\nAnswers: {len(cases)} cases, mode={mode.value} "
+            f"\nAnswers: {len(cases)} cases, mode={mode.value}, model={settings.gemini_eval_model} "
             f"(LangSmith={'on' if settings.langsmith_configured else 'off'})"
         )
-        answers = await run_answers(cases, mode)
+        answers = await run_answers(cases, mode, Pacer(args.rpm))
         print()
         _print_answers(answers)
         report["answers"] = answers
