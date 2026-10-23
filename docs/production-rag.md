@@ -41,11 +41,33 @@ question
 - [x] **1. Postgres + pgvector:** `docker-compose.yml`, SQLAlchemy models for documents and chunks, pgvector column, migrate ingestion off Chroma
 - [x] **2. Hybrid search:** full-text index, vector search, RRF fusion in `services/retrieval/`
 - [x] **3. Reranker:** cross-encoder rerank step with configurable candidate count and top-k
-- [ ] **4. Retrieval comparison:** eval runs for vector-only vs hybrid vs hybrid + rerank, results table in this doc
+- [x] **4. Retrieval comparison:** eval runs for vector-only vs hybrid vs hybrid + rerank, results table in this doc
 - [ ] **5. RAGAS evals:** `evals/ragas/` suite with a stored baseline (`baseline.json`)
 - [ ] **6. CI quality gate:** `.github/workflows/evals.yml` runs evals and fails on regression
 - [ ] **7. Langfuse tracing:** spans for each retrieval stage and the LLM call, token usage, cost, latency
 - [ ] **8. Write-up:** README update, screenshots, Medium article
+
+## Retrieval results
+
+`python -m evals.run_evals --seed --retrieval-only` over the 22-case golden set (8 sample docs, 17 chunks, k=4). A case counts as a hit when a retrieved chunk contains the case's `evidence` string, so this measures chunk-level ranking, not just the right file.
+
+| Mode | hit@1 | hit@4 | MRR |
+|------|-------|-------|-----|
+| Vector only (pgvector cosine) | 73% | 100% | 0.864 |
+| Hybrid (vector + full-text, RRF) | 86% | 100% | 0.924 |
+| Hybrid + rerank (MiniLM cross-encoder) | **91%** | 100% | **0.936** |
+
+Where it helped:
+
+- **Exact codes:** `runbook-err-4021` was #2 for vector search (ERR-4012 looks almost the same as an embedding). Full-text search matches the exact token, and the reranker puts it at #1.
+- **Near-duplicate documents:** in `travel-2025-hotel-cap` and `travel-2026-expense-deadline`, the 2025 and 2026 policies differ only in their numbers. Hybrid search and the reranker pick the right year.
+- **Specific nouns:** `catalog-sp30-room` and `security-lost-device` move from #2 to #1 once keywords count.
+
+Where it hurt:
+
+- `damage-report` dropped from #1 to #3 and `travel-2026-per-diem` from #2 to #4 under the reranker. MiniLM is a small, general-purpose model trained on web search queries. A larger reranker (for example `BAAI/bge-reranker-base`, set through `RERANKER_MODEL`) is the next thing to try.
+
+Caveat: with only 17 chunks, every mode finds the evidence somewhere in the top 4, so hit@4 can't tell the modes apart. hit@1 and MRR are the numbers to watch until the corpus grows.
 
 ## Planned structure
 
