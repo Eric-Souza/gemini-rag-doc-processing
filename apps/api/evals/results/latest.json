@@ -1,0 +1,362 @@
+{
+  "timestamp": "2026-10-23T19:48:22+00:00",
+  "chat_model": "gemini-3.6-flash",
+  "embed_model": "gemini-embedding-001",
+  "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+  "retrieval": [
+    {
+      "mode": "vector",
+      "hit_at_1": 0.7272727272727273,
+      "hit_at_k": 1.0,
+      "mrr": 0.8636363636363636,
+      "cases": [
+        {
+          "id": "benefits-deductible",
+          "rank": 1,
+          "top_file": "acme-benefits.md"
+        },
+        {
+          "id": "benefits-wellness",
+          "rank": 1,
+          "top_file": "acme-benefits.md"
+        },
+        {
+          "id": "benefits-pto",
+          "rank": 1,
+          "top_file": "acme-benefits.md"
+        },
+        {
+          "id": "nova-launch",
+          "rank": 1,
+          "top_file": "project-nova-brief.txt"
+        },
+        {
+          "id": "nova-handle-time",
+          "rank": 1,
+          "top_file": "project-nova-brief.txt"
+        },
+        {
+          "id": "refund-window",
+          "rank": 1,
+          "top_file": "refund-shipping-policy.md"
+        },
+        {
+          "id": "shipping-overnight",
+          "rank": 1,
+          "top_file": "refund-shipping-policy.md"
+        },
+        {
+          "id": "damage-report",
+          "rank": 1,
+          "top_file": "refund-shipping-policy.md"
+        },
+        {
+          "id": "runbook-err-4021",
+          "rank": 2,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "runbook-err-4012",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "runbook-err-5003",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "runbook-sev1-status",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "travel-2026-per-diem",
+          "rank": 2,
+          "top_file": "travel-policy-2025.md"
+        },
+        {
+          "id": "travel-2025-hotel-cap",
+          "rank": 2,
+          "top_file": "travel-policy-2026.md"
+        },
+        {
+          "id": "travel-2026-expense-deadline",
+          "rank": 2,
+          "top_file": "travel-policy-2025.md"
+        },
+        {
+          "id": "travel-2026-rail",
+          "rank": 1,
+          "top_file": "travel-policy-2026.md"
+        },
+        {
+          "id": "catalog-nv220x-battery",
+          "rank": 1,
+          "top_file": "product-catalog.md"
+        },
+        {
+          "id": "catalog-nv220-price",
+          "rank": 1,
+          "top_file": "product-catalog.md"
+        },
+        {
+          "id": "catalog-sp30-room",
+          "rank": 2,
+          "top_file": "project-nova-brief.txt"
+        },
+        {
+          "id": "security-lost-device",
+          "rank": 2,
+          "top_file": "security-policy.md"
+        },
+        {
+          "id": "security-incident-report",
+          "rank": 1,
+          "top_file": "security-policy.md"
+        },
+        {
+          "id": "security-password-length",
+          "rank": 1,
+          "top_file": "security-policy.md"
+        }
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "hit_at_1": 0.8636363636363636,
+      "hit_at_k": 1.0,
+      "mrr": 0.9242424242424242,
+      "cases": [
+        {
+          "id": "benefits-deductible",
+          "rank": 1,
+          "top_file": "acme-benefits.md"
+        },
+        {
+          "id": "benefits-wellness",
+          "rank": 1,
+          "top_file": "acme-benefits.md"
+        },
+        {
+          "id": "benefits-pto",
+          "rank": 1,
+          "top_file": "acme-benefits.md"
+        },
+        {
+          "id": "nova-launch",
+          "rank": 1,
+          "top_file": "project-nova-brief.txt"
+        },
+        {
+          "id": "nova-handle-time",
+          "rank": 1,
+          "top_file": "project-nova-brief.txt"
+        },
+        {
+          "id": "refund-window",
+          "rank": 1,
+          "top_file": "refund-shipping-policy.md"
+        },
+        {
+          "id": "shipping-overnight",
+          "rank": 1,
+          "top_file": "refund-shipping-policy.md"
+        },
+        {
+          "id": "damage-report",
+          "rank": 1,
+          "top_file": "refund-shipping-policy.md"
+        },
+        {
+          "id": "runbook-err-4021",
+          "rank": 2,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "runbook-err-4012",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "runbook-err-5003",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "runbook-sev1-status",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "travel-2026-per-diem",
+          "rank": 3,
+          "top_file": "travel-policy-2025.md"
+        },
+        {
+          "id": "travel-2025-hotel-cap",
+          "rank": 2,
+          "top_file": "travel-policy-2026.md"
+        },
+        {
+          "id": "travel-2026-expense-deadline",
+          "rank": 1,
+          "top_file": "travel-policy-2026.md"
+        },
+        {
+          "id": "travel-2026-rail",
+          "rank": 1,
+          "top_file": "travel-policy-2026.md"
+        },
+        {
+          "id": "catalog-nv220x-battery",
+          "rank": 1,
+          "top_file": "product-catalog.md"
+        },
+        {
+          "id": "catalog-nv220-price",
+          "rank": 1,
+          "top_file": "product-catalog.md"
+        },
+        {
+          "id": "catalog-sp30-room",
+          "rank": 1,
+          "top_file": "product-catalog.md"
+        },
+        {
+          "id": "security-lost-device",
+          "rank": 1,
+          "top_file": "security-policy.md"
+        },
+        {
+          "id": "security-incident-report",
+          "rank": 1,
+          "top_file": "security-policy.md"
+        },
+        {
+          "id": "security-password-length",
+          "rank": 1,
+          "top_file": "security-policy.md"
+        }
+      ]
+    },
+    {
+      "mode": "hybrid_rerank",
+      "hit_at_1": 0.9090909090909091,
+      "hit_at_k": 1.0,
+      "mrr": 0.9356060606060606,
+      "cases": [
+        {
+          "id": "benefits-deductible",
+          "rank": 1,
+          "top_file": "acme-benefits.md"
+        },
+        {
+          "id": "benefits-wellness",
+          "rank": 1,
+          "top_file": "acme-benefits.md"
+        },
+        {
+          "id": "benefits-pto",
+          "rank": 1,
+          "top_file": "acme-benefits.md"
+        },
+        {
+          "id": "nova-launch",
+          "rank": 1,
+          "top_file": "project-nova-brief.txt"
+        },
+        {
+          "id": "nova-handle-time",
+          "rank": 1,
+          "top_file": "project-nova-brief.txt"
+        },
+        {
+          "id": "refund-window",
+          "rank": 1,
+          "top_file": "refund-shipping-policy.md"
+        },
+        {
+          "id": "shipping-overnight",
+          "rank": 1,
+          "top_file": "refund-shipping-policy.md"
+        },
+        {
+          "id": "damage-report",
+          "rank": 3,
+          "top_file": "security-policy.md"
+        },
+        {
+          "id": "runbook-err-4021",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "runbook-err-4012",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "runbook-err-5003",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "runbook-sev1-status",
+          "rank": 1,
+          "top_file": "it-incident-runbook.md"
+        },
+        {
+          "id": "travel-2026-per-diem",
+          "rank": 4,
+          "top_file": "travel-policy-2025.md"
+        },
+        {
+          "id": "travel-2025-hotel-cap",
+          "rank": 1,
+          "top_file": "travel-policy-2025.md"
+        },
+        {
+          "id": "travel-2026-expense-deadline",
+          "rank": 1,
+          "top_file": "travel-policy-2026.md"
+        },
+        {
+          "id": "travel-2026-rail",
+          "rank": 1,
+          "top_file": "travel-policy-2026.md"
+        },
+        {
+          "id": "catalog-nv220x-battery",
+          "rank": 1,
+          "top_file": "product-catalog.md"
+        },
+        {
+          "id": "catalog-nv220-price",
+          "rank": 1,
+          "top_file": "product-catalog.md"
+        },
+        {
+          "id": "catalog-sp30-room",
+          "rank": 1,
+          "top_file": "product-catalog.md"
+        },
+        {
+          "id": "security-lost-device",
+          "rank": 1,
+          "top_file": "security-policy.md"
+        },
+        {
+          "id": "security-incident-report",
+          "rank": 1,
+          "top_file": "security-policy.md"
+        },
+        {
+          "id": "security-password-length",
+          "rank": 1,
+          "top_file": "security-policy.md"
+        }
+      ]
+    }
+  ]
+}
