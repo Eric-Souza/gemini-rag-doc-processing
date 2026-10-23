@@ -83,6 +83,10 @@ Runtime data (`app.db`, uploads, Chroma) lives under `apps/api/data/` and is git
 - Google Gemini for chat and embeddings
 - SQLite for document metadata; Chroma for vectors
 
+## In progress: production RAG upgrade
+
+Work on the `production-rag` branch adds hybrid search (Postgres full-text + pgvector), a local cross-encoder reranker, RAGAS evals as a CI quality gate, and Langfuse tracing with per-query cost and latency. See the plan in [docs/production-rag.md](docs/production-rag.md).
+
 ## Out of scope
 
-- Auth, pgvector migration, LlamaIndex comparison rebuild
+- Auth, LlamaIndex comparison rebuild
