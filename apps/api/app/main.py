@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,12 +8,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import apply_langsmith_env, get_settings
 from app.db import init_db
 from app.routers import chat, documents, health
+from app.services.retrieval.rerank import warm_up_reranker
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     apply_langsmith_env()
     await init_db()
+    if get_settings().retrieval_mode == "hybrid_rerank":
+        # Load the cross-encoder now so the first chat request isn't slow
+        await asyncio.to_thread(warm_up_reranker)
     yield
 
 
@@ -20,8 +25,6 @@ def create_app() -> FastAPI:
     settings = get_settings()
     apply_langsmith_env(settings)
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
-    Path(settings.chroma_path).mkdir(parents=True, exist_ok=True)
-    Path(settings.upload_dir).parent.mkdir(parents=True, exist_ok=True)
 
     app = FastAPI(title="Doc Processing AI", version="0.1.0", lifespan=lifespan)
     app.add_middleware(

@@ -60,7 +60,7 @@ export function DocumentsPage() {
           Documents
         </Typography>
         <Typography color="text.secondary">
-          Upload files to chunk, embed with Gemini, and store in Chroma for grounded Q&A.
+          Upload files to chunk, embed with Gemini, and store in Postgres + pgvector for grounded Q&A.
         </Typography>
       </Box>
 

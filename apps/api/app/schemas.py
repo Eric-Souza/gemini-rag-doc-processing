@@ -12,6 +12,7 @@ class HealthResponse(BaseModel):
     langsmith_configured: bool = False
     chat_model: str = ""
     embed_model: str = ""
+    retrieval_mode: str = ""
 
 
 class DocumentOut(BaseModel):

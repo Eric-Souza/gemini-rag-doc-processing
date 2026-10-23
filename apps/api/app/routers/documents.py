@@ -9,7 +9,6 @@ from app.db import get_db
 from app.models import Document, DocumentStatus
 from app.schemas import DocumentOut
 from app.services.ingest import ingest_document
-from app.services.vectorstore import delete_document_vectors
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -78,11 +77,6 @@ async def delete_document(document_id: str, db: AsyncSession = Depends(get_db)) 
     if file_path.exists():
         file_path.unlink()
 
-    try:
-        delete_document_vectors(document_id)
-    except Exception:
-        # Vector cleanup best-effort; still remove metadata
-        pass
-
+    # Chunks are removed by the ON DELETE CASCADE foreign key
     await db.delete(doc)
     await db.commit()
