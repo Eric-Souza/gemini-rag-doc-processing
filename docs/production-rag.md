@@ -42,10 +42,10 @@ question
 - [x] **2. Hybrid search:** full-text index, vector search, RRF fusion in `services/retrieval/`
 - [x] **3. Reranker:** cross-encoder rerank step with configurable candidate count and top-k
 - [x] **4. Retrieval comparison:** eval runs for vector-only vs hybrid vs hybrid + rerank, results table in this doc
-- [ ] **5. RAGAS evals:** `evals/ragas/` suite with a stored baseline (`baseline.json`)
-- [ ] **6. CI quality gate:** `.github/workflows/evals.yml` runs evals and fails on regression
-- [ ] **7. Langfuse tracing:** spans for each retrieval stage and the LLM call, token usage, cost, latency
-- [ ] **8. Write-up:** README update, screenshots, Medium article
+- [x] **5. RAGAS evals:** `evals/ragas/` suite with a stored baseline (`evals/baseline.json`)
+- [x] **6. CI quality gate:** `.github/workflows/evals.yml` runs evals and fails on regression
+- [x] **7. Langfuse tracing:** spans for each retrieval stage and the LLM call, token usage, cost, latency
+- [x] **8. Write-up:** README update, screenshots, Medium article (draft)
 
 ## Retrieval results
 
@@ -75,28 +75,85 @@ Caveat: with only 17 chunks, every mode finds the evidence somewhere in the top 
 
 The answer evals run on `GEMINI_EVAL_MODEL` (`gemini-3.5-flash-lite`), not the app's chat model. The Gemini free tier allows only 20 requests per day for `gemini-3.6-flash`, and one run needs 44 (answer + judge per case). The runner keeps requests under the per-minute limit (`--rpm`, default 5), waits and retries on per-minute 429s, and stops with a clear message once the daily quota is used up.
 
-## Planned structure
+## RAGAS results
+
+`python -m evals.ragas.run_ragas` scores the 7 golden-set cases marked `ragas_ci` (hybrid + rerank, judge `gemini-3.5-flash-lite`). Reference answers live in `golden_set.json` next to each question.
+
+| Case | faithfulness | answer relevancy | context precision | context recall |
+|------|---|---|---|---|
+| benefits-deductible | 1.00 | 0.95 | 1.00 | 1.00 |
+| nova-handle-time | 1.00 | 0.89 | 1.00 | 1.00 |
+| damage-report | 1.00 | 0.99 | 0.33 | 1.00 |
+| runbook-err-4021 | 1.00 | 0.78 | 1.00 | 1.00 |
+| travel-2025-hotel-cap | 1.00 | 0.97 | 1.00 | 1.00 |
+| catalog-sp30-room | 1.00 | 0.85 | 1.00 | 1.00 |
+| security-lost-device | 1.00 | 0.85 | 1.00 | 1.00 |
+| **Mean** | **1.000** | **0.898** | **0.905** | **1.000** |
+
+The run took 85 chat requests and no rate-limit retries. `damage-report`'s context precision of 0.33 is the same weakness the retrieval evals found: the reranker puts its evidence chunk at #3. Answer relevancy is the noisiest metric, because it compares questions an LLM generates back from the answer.
+
+## Quality gate
+
+`.github/workflows/evals.yml` has two jobs:
+
+- **tests:** pytest against a `pgvector/pgvector:pg16` service container, with CPU-only PyTorch for the reranker tests.
+- **eval-gate:** seeds `samples/`, runs the retrieval evals and the RAGAS subset, then `python -m evals.gate`. It needs a `GEMINI_API_KEY` repository secret and reports a skip without one (for example on forks).
+
+`evals/gate.py` compares the results with `evals/baseline.json` and exits 1 when a metric falls below its baseline by more than the tolerance:
+
+- **Retrieval (hit@1, MRR), tolerance 0.01:** retrieval is deterministic, so a single case slipping from #1 to #2 (1/22 of hit@1) fails the build.
+- **RAGAS (four means), tolerance 0.1:** the judge is an LLM, so small run-to-run changes don't count as regressions.
+
+The comparison table is written to the job summary. After an intended change, `python -m evals.gate --update-baseline` accepts the new scores.
+
+## Tracing
+
+With `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` set, every chat request is one Langfuse trace (`app/services/tracing.py`). Without them, the tracing helpers do nothing.
+
+```
+doc-qa-rag              span        root, tagged mode:rag (eval runs add eval:<case>)
+├─ retrieve             retriever   question, k, mode → final chunks with every stage's scores
+│  ├─ embed_query       embedding   gemini-embedding-001
+│  ├─ vector_search     span        top 20 by cosine
+│  ├─ keyword_search    span        top 20 by ts_rank_cd
+│  ├─ rrf               span        fused ranking
+│  └─ rerank            span        cross-encoder top-k
+└─ doc-qa-rag           generation  model, prompt, answer, token usage (LangChain callback)
+```
+
+Agent mode traces under `doc-qa-agent`: the LangChain callback records the LangGraph nodes, each LLM call, and each tool call, and every tool call adds a `retrieve` subtree under the trace root. Langfuse's built-in price table doesn't include Gemini 3.x models, so cost stays empty until you add a model definition with your price in Langfuse (Settings → Models). On the Gemini free tier, the real cost is $0.
+
+`docker-compose.langfuse.yml` runs Langfuse locally with a preconfigured project and API keys (see the comment at the top of the file). LangSmith tracing still works as before, and both can be on at once.
+
+## Structure
 
 ```
 apps/api/
   app/services/retrieval/
-    keyword.py      # Postgres full-text search
-    vector.py       # pgvector similarity search
-    fusion.py       # Reciprocal Rank Fusion
-    rerank.py       # cross-encoder reranker
-    pipeline.py     # hybrid retrieve → rerank → top-k
-  evals/ragas/
-    dataset.json    # questions, reference answers, reference contexts
-    run_ragas.py    # computes metrics, compares with baseline
-    baseline.json   # scores the CI gate compares against
-docker-compose.yml  # Postgres 16 + pgvector
+    keyword.py        # Postgres full-text search
+    vector.py         # pgvector similarity search
+    fusion.py         # Reciprocal Rank Fusion
+    rerank.py         # cross-encoder reranker
+    pipeline.py       # hybrid retrieve → rerank → top-k, one span per stage
+  app/services/tracing.py   # optional Langfuse client, spans, LangChain callback
+  evals/
+    golden_set.json   # questions, evidence strings, reference answers, ragas_ci flags
+    run_evals.py      # retrieval (hit@k, MRR) and answer evals
+    ragas/run_ragas.py  # RAGAS metrics on the CI subset or all cases
+    pacing.py         # free-tier request pacing and 429 handling
+    gate.py           # compares results with baseline.json
+    baseline.json     # scores the CI gate compares against
+docker-compose.yml           # Postgres 16 + pgvector
+docker-compose.langfuse.yml  # optional local Langfuse
 .github/workflows/
-  evals.yml         # RAGAS quality gate
+  evals.yml          # tests + eval quality gate
 ```
+
+The original plan had a separate `evals/ragas/dataset.json`. Reference answers went into `golden_set.json` instead, so both eval suites share one dataset, and the baseline sits next to the gate in `evals/`.
 
 ## Free-tier notes
 
-- **Gemini API (AI Studio):** free tier for chat and embeddings. Also used as the RAGAS judge model in CI, so keep the eval set small (about 20–30 questions) to stay inside rate limits.
+- **Gemini API (AI Studio):** free tier for chat and embeddings. Also the RAGAS judge in CI, through a lite model with a larger daily quota. One RAGAS case costs 11 to 13 chat requests, so CI scores a 7-case subset (about 85 requests).
 - **Neon:** free Postgres with pgvector for a hosted demo.
 - **Langfuse Hobby:** 50K units/month, 30-day retention.
 - **Reranker:** runs locally, no API cost.
