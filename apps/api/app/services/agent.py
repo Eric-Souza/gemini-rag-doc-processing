@@ -10,6 +10,7 @@ from langgraph.prebuilt import ToolNode
 from app.services.llm import get_chat_model
 from app.services.rag import _run_config
 from app.services.retrieval import retrieve
+from app.services.tracing import trace
 
 _active_document_ids: list[str] | None = None
 _collected_citations: list[dict[str, Any]] = []
@@ -66,6 +67,16 @@ def _build_graph():
 _graph = None
 
 
+def _final_text(result: dict[str, Any]) -> str:
+    final = result["messages"][-1]
+    text = final.content if isinstance(final, AIMessage) else str(final.content)
+    if isinstance(text, list):
+        text = "".join(
+            part.get("text", "") if isinstance(part, dict) else str(part) for part in text
+        )
+    return str(text or "")
+
+
 def get_agent_graph():
     global _graph
     if _graph is None:
@@ -93,10 +104,12 @@ async def stream_agent(
         )
     )
     config = _run_config("agent", document_ids=document_ids)
-    result = await get_agent_graph().ainvoke(
-        {"messages": [system, HumanMessage(content=message)]},
-        config=config,
-    )
+    with trace("doc-qa-agent", tags=config["tags"], metadata=config["metadata"], input=message) as root:
+        result = await get_agent_graph().ainvoke(
+            {"messages": [system, HumanMessage(content=message)]},
+            config=config,
+        )
+        root.update(output=_final_text(result))
 
     seen: set[tuple[str, str]] = set()
     for c in _collected_citations:
@@ -106,12 +119,7 @@ async def stream_agent(
         seen.add(key)
         yield ("citation", c)
 
-    final = result["messages"][-1]
-    text = final.content if isinstance(final, AIMessage) else str(final.content)
-    if isinstance(text, list):
-        text = "".join(
-            part.get("text", "") if isinstance(part, dict) else str(part) for part in text
-        )
+    text = _final_text(result)
 
     yield ("status", {"message": "Streaming answer…"})
 

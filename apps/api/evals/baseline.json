@@ -1,0 +1,22 @@
+{
+  "retrieval": {
+    "mode": "hybrid_rerank",
+    "tolerance": 0.01,
+    "metrics": {
+      "hit_at_1": 0.909,
+      "mrr": 0.936
+    }
+  },
+  "ragas": {
+    "subset": "ragas_ci",
+    "cases_scored": 7,
+    "mode": "hybrid_rerank",
+    "tolerance": 0.1,
+    "metrics": {
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.898,
+      "context_precision": 0.905,
+      "context_recall": 1.0
+    }
+  }
+}

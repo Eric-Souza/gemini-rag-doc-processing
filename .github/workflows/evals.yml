@@ -1,0 +1,121 @@
+name: tests and eval gate
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "samples/**"
+      - ".github/workflows/evals.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "samples/**"
+      - ".github/workflows/evals.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/api
+
+env:
+  DATABASE_URL: postgresql+asyncpg://rag:rag@localhost:5432/rag
+  RAGAS_DO_NOT_TRACK: "true"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: rag
+          POSTGRES_PASSWORD: rag
+          POSTGRES_DB: rag
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rag" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - name: Install (CPU-only PyTorch for the reranker)
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,rerank]"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('apps/api/app/config.py') }}
+      - name: pytest
+        run: pytest -q
+
+  eval-gate:
+    # Retrieval evals need Gemini embeddings and RAGAS needs chat calls, so this job needs the
+    # GEMINI_API_KEY repository secret. Without it (forks, or before the secret is set) the
+    # job reports a skip instead of failing.
+    runs-on: ubuntu-latest
+    needs: tests
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: rag
+          POSTGRES_PASSWORD: rag
+          POSTGRES_DB: rag
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rag" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - name: Check for the Gemini key
+        id: key
+        run: |
+          if [ -n "$GEMINI_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "Skipped: add a GEMINI_API_KEY repository secret to run the eval gate." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
+      - uses: actions/setup-python@v5
+        if: steps.key.outputs.present == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - name: Install
+        if: steps.key.outputs.present == 'true'
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[rerank,evals]"
+      - uses: actions/cache@v4
+        if: steps.key.outputs.present == 'true'
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('apps/api/app/config.py') }}
+      - name: Retrieval evals (embeddings only)
+        if: steps.key.outputs.present == 'true'
+        run: python -m evals.run_evals --seed --retrieval-only
+      - name: RAGAS evals (CI subset)
+        if: steps.key.outputs.present == 'true'
+        run: python -m evals.ragas.run_ragas --rpm 10
+      - name: Quality gate
+        if: steps.key.outputs.present == 'true'
+        run: python -m evals.gate
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.key.outputs.present == 'true'
+        with:
+          name: eval-results
+          path: apps/api/evals/results/

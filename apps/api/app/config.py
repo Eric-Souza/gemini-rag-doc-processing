@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     langsmith_tracing: bool | None = None
     langsmith_project: str = "doc-processing-ai"
 
+    # Langfuse tracing (optional): set both keys to enable it
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+    langfuse_environment: str = "development"
+
     @model_validator(mode="after")
     def _resolve_langsmith(self) -> "Settings":
         if not self.langsmith_api_key.strip() and self.langchain_api_key.strip():
@@ -65,6 +71,10 @@ class Settings(BaseSettings):
     @property
     def langsmith_configured(self) -> bool:
         return bool(self.langsmith_api_key.strip()) and bool(self.langsmith_tracing)
+
+    @property
+    def langfuse_configured(self) -> bool:
+        return bool(self.langfuse_public_key.strip()) and bool(self.langfuse_secret_key.strip())
 
 
 @lru_cache

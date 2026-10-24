@@ -34,6 +34,7 @@ export interface HealthResponse {
   status: string
   gemini_configured: boolean
   langsmith_configured?: boolean
+  langfuse_configured?: boolean
   chat_model?: string
   embed_model?: string
   retrieval_mode?: string

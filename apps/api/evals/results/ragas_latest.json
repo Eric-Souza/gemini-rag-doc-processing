@@ -1,0 +1,72 @@
+{
+  "timestamp": "2026-10-24T16:49:13+00:00",
+  "subset": "ragas_ci",
+  "cases_scored": 7,
+  "mode": "hybrid_rerank",
+  "eval_model": "gemini-3.5-flash-lite",
+  "embed_model": "gemini-embedding-001",
+  "metrics": {
+    "faithfulness": 1.0,
+    "answer_relevancy": 0.8977482482433581,
+    "context_precision": 0.9047619046714285,
+    "context_recall": 1.0
+  },
+  "cases": [
+    {
+      "id": "benefits-deductible",
+      "answer": "Based on the Acme Benefits Handbook, the Acme Care Plus deductible for an individual is $1,000 [1].",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.9490517546813949,
+      "context_precision": 0.9999999999,
+      "context_recall": 1.0
+    },
+    {
+      "id": "nova-handle-time",
+      "answer": "Based on the provided documents, the target handle time for policy questions is under 3 minutes [1].",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8898413179944523,
+      "context_precision": 0.9999999999,
+      "context_recall": 1.0
+    },
+    {
+      "id": "damage-report",
+      "answer": "Based on the provided documents, damaged items must be reported within **48 hours** of delivery [3].",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.9888710304314362,
+      "context_precision": 0.3333333333,
+      "context_recall": 1.0
+    },
+    {
+      "id": "runbook-err-4021",
+      "answer": "Based on the provided document, for ERR-4021 (OAuth token refresh failed):\n\n1. Re-sync the secret from the processor dashboard (because the client secret was likely rotated without updating the vault entry `payments/gateway/oauth`).\n2. Restart the gateway pods.\n3. Do not fail over, as the secondary processor uses the same credentials.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.7806803025530629,
+      "context_precision": 0.9999999999,
+      "context_recall": 1.0
+    },
+    {
+      "id": "travel-2025-hotel-cap",
+      "answer": "Based on the 2025 travel policy, the high-cost city hotel cap is $275 (for New York, San Francisco, London, and Tokyo) [1].",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.972364185499869,
+      "context_precision": 0.9999999999,
+      "context_recall": 1.0
+    },
+    {
+      "id": "catalog-sp30-room",
+      "answer": "The SP-30 Conference Speakerphone can handle rooms of up to 12 people (product-catalog.md).",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8498176518240058,
+      "context_precision": 0.9999999999,
+      "context_recall": 1.0
+    },
+    {
+      "id": "security-lost-device",
+      "answer": "Lost or stolen devices must be reported to IT within 1 hour [1].",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8536114947192854,
+      "context_precision": 0.9999999999,
+      "context_recall": 1.0
+    }
+  ]
+}

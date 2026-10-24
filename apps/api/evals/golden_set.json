@@ -5,7 +5,9 @@
     "expected_filenames": ["acme-benefits.md"],
     "evidence": "Deductible: $1,000",
     "must_contain": ["1000", "$1,000", "$1000"],
-    "k": 4
+    "k": 4,
+    "reference": "The Acme Care Plus deductible is $1,000 for an individual ($2,000 for a family).",
+    "ragas_ci": true
   },
   {
     "id": "benefits-wellness",
@@ -13,7 +15,8 @@
     "expected_filenames": ["acme-benefits.md"],
     "evidence": "$600 annual wellness stipend",
     "must_contain": ["600", "$600"],
-    "k": 4
+    "k": 4,
+    "reference": "Employees receive a $600 annual wellness stipend, which can be used for gym memberships, fitness classes, or mental health apps."
   },
   {
     "id": "benefits-pto",
@@ -21,7 +24,8 @@
     "expected_filenames": ["acme-benefits.md"],
     "evidence": "Years 0-2: 15 days",
     "must_contain": ["15"],
-    "k": 4
+    "k": 4,
+    "reference": "Employees in years 0-2 get 15 days of PTO."
   },
   {
     "id": "nova-launch",
@@ -29,7 +33,8 @@
     "expected_filenames": ["project-nova-brief.txt"],
     "evidence": "Launch target: September 15, 2026",
     "must_contain": ["September 15", "2026", "September 15, 2026"],
-    "k": 4
+    "k": 4,
+    "reference": "Project Nova's launch target is September 15, 2026."
   },
   {
     "id": "nova-handle-time",
@@ -37,7 +42,9 @@
     "expected_filenames": ["project-nova-brief.txt"],
     "evidence": "under 3 minutes",
     "must_contain": ["3 minutes", "under 3"],
-    "k": 4
+    "k": 4,
+    "reference": "The target is to reduce policy-related handle time to under 3 minutes, down from an average of 7.4 minutes.",
+    "ragas_ci": true
   },
   {
     "id": "refund-window",
@@ -45,7 +52,8 @@
     "expected_filenames": ["refund-shipping-policy.md"],
     "evidence": "30 days",
     "must_contain": ["30"],
-    "k": 4
+    "k": 4,
+    "reference": "Customers can request a refund within 30 days of delivery for unused items in original packaging."
   },
   {
     "id": "shipping-overnight",
@@ -53,7 +61,8 @@
     "expected_filenames": ["refund-shipping-policy.md"],
     "evidence": "$29.99",
     "must_contain": ["29.99", "$29.99"],
-    "k": 4
+    "k": 4,
+    "reference": "Overnight shipping costs $29.99 and arrives in 1 business day."
   },
   {
     "id": "damage-report",
@@ -61,7 +70,9 @@
     "expected_filenames": ["refund-shipping-policy.md"],
     "evidence": "within 48 hours",
     "must_contain": ["48"],
-    "k": 4
+    "k": 4,
+    "reference": "Damaged items must be reported within 48 hours of delivery, with photos.",
+    "ragas_ci": true
   },
   {
     "id": "runbook-err-4021",
@@ -69,7 +80,9 @@
     "expected_filenames": ["it-incident-runbook.md"],
     "evidence": "ERR-4021: OAuth token refresh failed",
     "must_contain": ["vault", "secret"],
-    "k": 4
+    "k": 4,
+    "reference": "ERR-4021 means the OAuth token refresh failed, usually because the client secret was rotated without updating the vault entry payments/gateway/oauth. On-call should re-sync the secret from the processor dashboard and restart the gateway pods, and should not fail over, because the secondary processor uses the same credentials.",
+    "ragas_ci": true
   },
   {
     "id": "runbook-err-4012",
@@ -77,7 +90,8 @@
     "expected_filenames": ["it-incident-runbook.md"],
     "evidence": "within 8 seconds",
     "must_contain": ["8 seconds", "8"],
-    "k": 4
+    "k": 4,
+    "reference": "ERR-4012 is raised when the upstream card processor does not respond within 8 seconds."
   },
   {
     "id": "runbook-err-5003",
@@ -85,7 +99,8 @@
     "expected_filenames": ["it-incident-runbook.md"],
     "evidence": "nightly-reconcile",
     "must_contain": ["nightly-reconcile"],
-    "k": 4
+    "k": 4,
+    "reference": "For repeated ERR-5003 errors on a single account, pause the nightly-reconcile job and escalate to the Ledger team."
   },
   {
     "id": "runbook-sev1-status",
@@ -93,7 +108,8 @@
     "expected_filenames": ["it-incident-runbook.md"],
     "evidence": "status page update within 15 minutes",
     "must_contain": ["15 minutes", "15"],
-    "k": 4
+    "k": 4,
+    "reference": "For a Severity 1 incident, the status page must be updated within 15 minutes."
   },
   {
     "id": "travel-2026-per-diem",
@@ -101,7 +117,8 @@
     "expected_filenames": ["travel-policy-2026.md"],
     "evidence": "$75 for domestic travel",
     "must_contain": ["$75", "75"],
-    "k": 4
+    "k": 4,
+    "reference": "Under the 2026 travel policy, the domestic meal per diem is $75 per day."
   },
   {
     "id": "travel-2025-hotel-cap",
@@ -109,7 +126,9 @@
     "expected_filenames": ["travel-policy-2025.md"],
     "evidence": "$275 in high-cost cities",
     "must_contain": ["$275", "275"],
-    "k": 4
+    "k": 4,
+    "reference": "Under the 2025 travel policy, the hotel cap in high-cost cities was $275 per night.",
+    "ragas_ci": true
   },
   {
     "id": "travel-2026-expense-deadline",
@@ -117,7 +136,8 @@
     "expected_filenames": ["travel-policy-2026.md"],
     "evidence": "within 21 days",
     "must_contain": ["21"],
-    "k": 4
+    "k": 4,
+    "reference": "Under the 2026 policy, expense reports must be submitted within 21 days of returning from a trip."
   },
   {
     "id": "travel-2026-rail",
@@ -125,7 +145,8 @@
     "expected_filenames": ["travel-policy-2026.md"],
     "evidence": "Rail is required for trips under 4 hours",
     "must_contain": ["4 hours", "under 4"],
-    "k": 4
+    "k": 4,
+    "reference": "Under the 2026 policy, rail is required for trips under 4 hours where a direct train route exists."
   },
   {
     "id": "catalog-nv220x-battery",
@@ -133,7 +154,8 @@
     "expected_filenames": ["product-catalog.md"],
     "evidence": "Battery life: 28 hours",
     "must_contain": ["28"],
-    "k": 4
+    "k": 4,
+    "reference": "The NV-220X wireless headset has 28 hours of talk time."
   },
   {
     "id": "catalog-nv220-price",
@@ -141,7 +163,8 @@
     "expected_filenames": ["product-catalog.md"],
     "evidence": "Price: $49",
     "must_contain": ["$49", "49"],
-    "k": 4
+    "k": 4,
+    "reference": "The NV-220 wired headset costs $49."
   },
   {
     "id": "catalog-sp30-room",
@@ -149,7 +172,9 @@
     "expected_filenames": ["product-catalog.md"],
     "evidence": "rooms of up to 12 people",
     "must_contain": ["12"],
-    "k": 4
+    "k": 4,
+    "reference": "The SP-30 conference speakerphone handles rooms of up to 12 people.",
+    "ragas_ci": true
   },
   {
     "id": "security-lost-device",
@@ -157,7 +182,9 @@
     "expected_filenames": ["security-policy.md"],
     "evidence": "reported to IT within 1 hour",
     "must_contain": ["1 hour", "one hour"],
-    "k": 4
+    "k": 4,
+    "reference": "A lost or stolen laptop must be reported to IT within 1 hour.",
+    "ragas_ci": true
   },
   {
     "id": "security-incident-report",
@@ -165,7 +192,8 @@
     "expected_filenames": ["security-policy.md"],
     "evidence": "within 24 hours of discovery",
     "must_contain": ["24"],
-    "k": 4
+    "k": 4,
+    "reference": "Suspected security incidents must be reported to security@acme.example within 24 hours of discovery."
   },
   {
     "id": "security-password-length",
@@ -173,6 +201,7 @@
     "expected_filenames": ["security-policy.md"],
     "evidence": "at least 14 characters",
     "must_contain": ["14"],
-    "k": 4
+    "k": 4,
+    "reference": "Passwords must be at least 14 characters long."
   }
 ]
