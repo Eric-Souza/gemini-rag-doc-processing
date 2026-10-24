@@ -101,8 +101,10 @@ The run took 85 chat requests and no rate-limit retries. `damage-report`'s conte
 
 `evals/gate.py` compares the results with `evals/baseline.json` and exits 1 when a metric falls below its baseline by more than the tolerance:
 
-- **Retrieval (hit@1, MRR), tolerance 0.01:** retrieval is deterministic, so a single case slipping from #1 to #2 (1/22 of hit@1) fails the build.
+- **Retrieval (hit@1, MRR for every mode), tolerance 0.01:** retrieval is deterministic, so a single case slipping from #1 to #2 (1/22 of hit@1) fails the build.
 - **RAGAS (four means), tolerance 0.1:** the judge is an LLM, so small run-to-run changes don't count as regressions.
+
+Every retrieval mode is gated, not just `hybrid_rerank`, because of a test I ran: reverting keyword search to `websearch_to_tsquery` (the bug from milestone 2) left `hybrid_rerank` at 91% hit@1. The reranker gets 20 candidates and the corpus has 17 chunks, so it reads everything and repairs the ranking on its own. Only `hybrid` showed the damage (hit@1 0.864 → 0.818), and gating it is what fails the build.
 
 The comparison table is written to the job summary. After an intended change, `python -m evals.gate --update-baseline` accepts the new scores.
 

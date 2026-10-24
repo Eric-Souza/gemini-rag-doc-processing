@@ -2,9 +2,12 @@
 
 Fails (exit 1) when a metric drops more than its tolerance below the baseline:
 
-  retrieval   hit@1 and MRR from results/latest.json (python -m evals.run_evals --retrieval-only)
+  retrieval   hit@1 and MRR for every retrieval mode, from results/latest.json
+              (python -m evals.run_evals --retrieval-only)
   ragas       mean RAGAS scores from results/ragas_latest.json (python -m evals.ragas.run_ragas)
 
+Every mode is checked, not just the one the app uses: with a small corpus the reranker can
+hide a broken stage (it fixed the ranking even with keyword search returning nothing).
 Retrieval is deterministic, so its tolerance only absorbs float noise: one case falling from
 #1 to #2 (1/22 of hit@1) fails the gate. RAGAS uses an LLM judge, so it gets more slack.
 
@@ -35,12 +38,23 @@ def _load(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _groups(baseline: dict[str, Any]) -> dict[str, tuple[float, dict[str, float]]]:
+    """Baseline metrics by gate group ("retrieval:<mode>", "ragas"), with their tolerance."""
+    retrieval = baseline["retrieval"]
+    groups = {f"retrieval:{mode}": (retrieval["tolerance"], metrics) for mode, metrics in retrieval["modes"].items()}
+    groups["ragas"] = (baseline["ragas"]["tolerance"], baseline["ragas"]["metrics"])
+    return groups
+
+
 def current_values(baseline: dict[str, Any]) -> dict[str, dict[str, float]]:
     retrieval = _load(RETRIEVAL_RESULTS)
-    mode = baseline["retrieval"]["mode"]
     by_mode = {r["mode"]: r for r in retrieval["retrieval"]}
-    if mode not in by_mode:
-        raise SystemExit(f"latest.json has no retrieval results for mode {mode!r}.")
+    missing = [mode for mode in baseline["retrieval"]["modes"] if mode not in by_mode]
+    if missing:
+        raise SystemExit(
+            f"latest.json has no retrieval results for {', '.join(missing)}. "
+            "Run python -m evals.run_evals --retrieval-only without --modes."
+        )
 
     ragas = _load(RAGAS_RESULTS)
     expected = baseline["ragas"]
@@ -54,17 +68,18 @@ def current_values(baseline: dict[str, Any]) -> dict[str, dict[str, float]]:
             f"the baseline uses {expected['cases_scored']} {expected['subset']} cases in {expected['mode']} mode. "
             "Rerun python -m evals.ragas.run_ragas without --limit."
         )
-    return {
-        "retrieval": {m: by_mode[mode][m] for m in baseline["retrieval"]["metrics"]},
-        "ragas": {m: ragas["metrics"][m] for m in baseline["ragas"]["metrics"]},
+    current = {
+        f"retrieval:{mode}": {m: by_mode[mode][m] for m in metrics}
+        for mode, metrics in baseline["retrieval"]["modes"].items()
     }
+    current["ragas"] = {m: ragas["metrics"][m] for m in baseline["ragas"]["metrics"]}
+    return current
 
 
 def check(baseline: dict[str, Any], current: dict[str, dict[str, float]]) -> list[tuple[str, str, float, float, bool]]:
     rows = []
-    for group in ("retrieval", "ragas"):
-        tolerance = baseline[group]["tolerance"]
-        for metric, expected in baseline[group]["metrics"].items():
+    for group, (tolerance, metrics) in _groups(baseline).items():
+        for metric, expected in metrics.items():
             value = current[group][metric]
             rows.append((group, metric, expected, value, value >= expected - tolerance))
     return rows
@@ -89,8 +104,9 @@ def main() -> None:
     current = current_values(baseline)
 
     if args.update_baseline:
-        for group in ("retrieval", "ragas"):
-            baseline[group]["metrics"] = {m: round(v, 3) for m, v in current[group].items()}
+        for mode in baseline["retrieval"]["modes"]:
+            baseline["retrieval"]["modes"][mode] = {m: round(v, 3) for m, v in current[f"retrieval:{mode}"].items()}
+        baseline["ragas"]["metrics"] = {m: round(v, 3) for m, v in current["ragas"].items()}
         BASELINE_PATH.write_text(json.dumps(baseline, indent=2) + "\n", encoding="utf-8")
         print(f"Updated {BASELINE_PATH.name}")
         return

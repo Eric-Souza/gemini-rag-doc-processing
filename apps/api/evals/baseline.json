@@ -1,10 +1,19 @@
 {
   "retrieval": {
-    "mode": "hybrid_rerank",
     "tolerance": 0.01,
-    "metrics": {
-      "hit_at_1": 0.909,
-      "mrr": 0.936
+    "modes": {
+      "vector": {
+        "hit_at_1": 0.727,
+        "mrr": 0.864
+      },
+      "hybrid": {
+        "hit_at_1": 0.864,
+        "mrr": 0.924
+      },
+      "hybrid_rerank": {
+        "hit_at_1": 0.909,
+        "mrr": 0.936
+      }
     }
   },
   "ragas": {
