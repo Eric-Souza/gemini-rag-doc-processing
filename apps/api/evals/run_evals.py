@@ -328,6 +328,12 @@ async def main() -> None:
         default=5,
         help="max chat requests per minute (Gemini free tier: 5; 0 disables pacing)",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="answer-eval only the first N cases (2 chat calls each) to save free-tier quota",
+    )
     args = parser.parse_args()
 
     apply_langsmith_env()
@@ -359,11 +365,12 @@ async def main() -> None:
 
     if not args.retrieval_only:
         mode = RetrievalMode(args.mode or settings.retrieval_mode)
+        answer_cases = cases[: args.limit] if args.limit > 0 else cases
         print(
-            f"\nAnswers: {len(cases)} cases, mode={mode.value}, model={settings.gemini_eval_model} "
+            f"\nAnswers: {len(answer_cases)} cases, mode={mode.value}, model={settings.gemini_eval_model} "
             f"(LangSmith={'on' if settings.langsmith_configured else 'off'})"
         )
-        answers = await run_answers(cases, mode, Pacer(args.rpm))
+        answers = await run_answers(answer_cases, mode, Pacer(args.rpm))
         print()
         _print_answers(answers)
         report["answers"] = answers
