@@ -9,6 +9,7 @@ from app.config import apply_langsmith_env, get_settings
 from app.db import init_db
 from app.routers import chat, documents, health
 from app.services.retrieval.rerank import warm_up_reranker
+from app.services.tracing import flush as flush_traces
 
 
 @asynccontextmanager
@@ -19,6 +20,8 @@ async def lifespan(_app: FastAPI):
         # Load the cross-encoder now so the first chat request isn't slow
         await asyncio.to_thread(warm_up_reranker)
     yield
+    # Send buffered Langfuse spans before the process exits
+    flush_traces()
 
 
 def create_app() -> FastAPI:

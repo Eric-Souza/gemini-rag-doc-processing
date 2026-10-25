@@ -27,13 +27,11 @@ import json
 import re
 import shutil
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_google_genai.chat_models import GoogleRateLimitError
 from sqlalchemy import select
 
 # Ensure apps/api is on path when run as a script
@@ -48,6 +46,8 @@ from app.services.ingest import ingest_document  # noqa: E402
 from app.services.llm import get_chat_model  # noqa: E402
 from app.services.rag import answer_rag  # noqa: E402
 from app.services.retrieval import Candidate, RetrievalMode, retrieve  # noqa: E402
+from app.services.tracing import flush as flush_traces  # noqa: E402
+from evals.pacing import Pacer  # noqa: E402
 
 GOLDEN_PATH = Path(__file__).resolve().parent / "golden_set.json"
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
@@ -214,37 +214,6 @@ async def run_retrieval(cases: list[dict[str, Any]], mode: RetrievalMode) -> dic
     }
 
 
-class Pacer:
-    """Spaces out chat calls to stay under the Gemini free tier's requests-per-minute limit,
-    and waits out a 429 using the retry delay the API suggests."""
-
-    def __init__(self, rpm: float, retries: int = 3) -> None:
-        self.interval = 60 / rpm if rpm > 0 else 0.0
-        self.retries = retries
-        self._next = 0.0
-
-    async def call(self, fn, *args, **kwargs):
-        for attempt in range(self.retries + 1):
-            wait = self._next - time.monotonic()
-            if wait > 0:
-                await asyncio.sleep(wait)
-            self._next = time.monotonic() + self.interval
-            try:
-                return await fn(*args, **kwargs)
-            except GoogleRateLimitError as exc:
-                if "PerDay" in str(exc):
-                    raise SystemExit(
-                        "Gemini free-tier daily request quota is used up for this model. "
-                        "Retry tomorrow or set GEMINI_CHAT_MODEL to a model with quota left."
-                    ) from exc
-                if attempt == self.retries:
-                    raise
-                match = re.search(r"retry in ([\d.]+)s", str(exc))
-                delay = float(match.group(1)) + 1 if match else 60.0
-                print(f"     rate limited, retrying in {delay:.0f}s")
-                await asyncio.sleep(delay)
-
-
 async def run_answers(cases: list[dict[str, Any]], mode: RetrievalMode, pacer: Pacer) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     for case in cases:
@@ -379,6 +348,7 @@ async def main() -> None:
     out = RESULTS_DIR / "latest.json"
     out.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"\nSaved {out.relative_to(API_ROOT)}")
+    flush_traces()
 
 
 if __name__ == "__main__":
