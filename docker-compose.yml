@@ -10,5 +10,14 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # Optional second vector store (VECTOR_STORE=qdrant). Dashboard at http://localhost:6333/dashboard
+  qdrant:
+    image: qdrant/qdrant:v1.20.0
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+    volumes:
+      - qdrantdata:/qdrant/storage
+
 volumes:
   pgdata:
+  qdrantdata:

@@ -45,7 +45,7 @@ from app.models import Document, DocumentStatus  # noqa: E402
 from app.services.ingest import ingest_document  # noqa: E402
 from app.services.llm import get_chat_model  # noqa: E402
 from app.services.rag import answer_rag  # noqa: E402
-from app.services.retrieval import Candidate, RetrievalMode, retrieve  # noqa: E402
+from app.services.retrieval import Candidate, RetrievalMode, qdrant_store, retrieve  # noqa: E402
 from app.services.tracing import flush as flush_traces  # noqa: E402
 from evals.pacing import Pacer  # noqa: E402
 
@@ -191,11 +191,16 @@ def _log_langsmith_feedback(
         print(f"  (LangSmith feedback skipped for {case_id}: {exc})")
 
 
-async def run_retrieval(cases: list[dict[str, Any]], mode: RetrievalMode) -> dict[str, Any]:
+def retrieval_label(store: str, mode: RetrievalMode) -> str:
+    """pgvector results keep the bare mode name ("hybrid"), so older results and baselines still line up"""
+    return mode.value if store == "pgvector" else f"{store}:{mode.value}"
+
+
+async def run_retrieval(cases: list[dict[str, Any]], mode: RetrievalMode, store: str = "pgvector") -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     for case in cases:
         k = int(case.get("k", 4))
-        hits = await retrieve(case["question"], k=k, mode=mode)
+        hits = await retrieve(case["question"], k=k, mode=mode, store=store)
         rank = evidence_rank(hits, case["evidence"])
         rows.append(
             {
@@ -206,7 +211,7 @@ async def run_retrieval(cases: list[dict[str, Any]], mode: RetrievalMode) -> dic
         )
     n = len(rows) or 1
     return {
-        "mode": mode.value,
+        "mode": retrieval_label(store, mode),
         "hit_at_1": sum(1 for r in rows if r["rank"] == 1) / n,
         "hit_at_k": sum(1 for r in rows if r["rank"] is not None) / n,
         "mrr": sum(1 / r["rank"] for r in rows if r["rank"]) / n,
@@ -246,18 +251,18 @@ async def run_answers(cases: list[dict[str, Any]], mode: RetrievalMode, pacer: P
 
 def _print_retrieval(results: list[dict[str, Any]]) -> None:
     modes = [r["mode"] for r in results]
-    print(f"{'case':<30}" + "".join(f"{m:>15}" for m in modes))
-    print("-" * (30 + 15 * len(modes)))
+    print(f"{'case':<30}" + "".join(f"{m:>22}" for m in modes))
+    print("-" * (30 + 22 * len(modes)))
     for i, case in enumerate(results[0]["cases"]):
         cells = []
         for r in results:
             rank = r["cases"][i]["rank"]
-            cells.append(f"{(f'#{rank}' if rank else 'miss'):>15}")
+            cells.append(f"{(f'#{rank}' if rank else 'miss'):>22}")
         print(f"{case['id']:<30}" + "".join(cells))
-    print("-" * (30 + 15 * len(modes)))
+    print("-" * (30 + 22 * len(modes)))
     for metric, label in (("hit_at_1", "hit@1"), ("hit_at_k", "hit@k"), ("mrr", "MRR")):
         values = "".join(
-            f"{(f'{r[metric]:.0%}' if metric != 'mrr' else f'{r[metric]:.3f}'):>15}"
+            f"{(f'{r[metric]:.0%}' if metric != 'mrr' else f'{r[metric]:.3f}'):>22}"
             for r in results
         )
         print(f"{label:<30}" + values)
@@ -284,6 +289,11 @@ async def main() -> None:
         "--modes",
         default="vector,hybrid,hybrid_rerank",
         help="comma-separated retrieval modes to compare",
+    )
+    parser.add_argument(
+        "--stores",
+        default="pgvector,qdrant",
+        help="comma-separated vector stores to compare (qdrant needs the docker compose qdrant service)",
     )
     parser.add_argument(
         "--mode",
@@ -319,8 +329,12 @@ async def main() -> None:
     await _ensure_index_ready({name for case in cases for name in case["expected_filenames"]})
 
     modes = [RetrievalMode(m.strip()) for m in args.modes.split(",") if m.strip()]
-    print(f"\nRetrieval: {len(cases)} cases x {len(modes)} modes\n")
-    retrieval_results = [await run_retrieval(cases, mode) for mode in modes]
+    stores = [s.strip() for s in args.stores.split(",") if s.strip()]
+    if "qdrant" in stores:
+        # Same chunks and embeddings as Postgres, so the two stores are compared on identical data
+        print(f"Rebuilt Qdrant from {await qdrant_store.rebuild()} chunks")
+    print(f"\nRetrieval: {len(cases)} cases x {len(modes)} modes x {len(stores)} stores\n")
+    retrieval_results = [await run_retrieval(cases, mode, store) for store in stores for mode in modes]
     _print_retrieval(retrieval_results)
 
     report: dict[str, Any] = {

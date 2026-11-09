@@ -22,6 +22,8 @@ dependencies = [
   "python-dotenv>=1.0.0",
   "langsmith>=0.3.0",
   "langfuse>=5.0.0",
+  # Qdrant vector store (VECTOR_STORE=qdrant); fastembed computes the BM25 sparse vectors locally
+  "qdrant-client[fastembed]>=1.15.0",
 ]
 
 [project.optional-dependencies]

@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     retrieval_candidates: int = 20
     rrf_k: int = 60
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    # Where vector and hybrid search run: "pgvector" (Postgres) or "qdrant". Postgres keeps the documents either way
+    vector_store: str = "pgvector"
+    # ":memory:" runs Qdrant in-process (tests)
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_collection: str = "chunks"
+    qdrant_sparse_model: str = "Qdrant/bm25"
     upload_dir: str = str(API_ROOT / "data" / "uploads")
     cors_origins: str = "http://localhost:5173"
 

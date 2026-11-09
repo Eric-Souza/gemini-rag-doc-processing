@@ -11,6 +11,8 @@ from app.config import Settings, get_settings
 _base_url = make_url(Settings().database_url)
 TEST_DB = f"{_base_url.database}_test"
 os.environ["DATABASE_URL"] = _base_url.set(database=TEST_DB).render_as_string(hide_password=False)
+# Qdrant runs in-process, so the tests need no server
+os.environ["QDRANT_URL"] = ":memory:"
 get_settings.cache_clear()
 
 EMBED_DIM = get_settings().embed_dim
