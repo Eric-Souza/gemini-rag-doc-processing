@@ -22,6 +22,8 @@ dependencies = [
   "python-dotenv>=1.0.0",
   "langsmith>=0.3.0",
   "langfuse>=5.0.0",
+  # Qdrant vector store (VECTOR_STORE=qdrant); fastembed computes the BM25 sparse vectors locally
+  "qdrant-client[fastembed]>=1.15.0",
 ]
 
 [project.optional-dependencies]
@@ -30,7 +32,15 @@ dev = ["pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
 rerank = ["sentence-transformers>=3.0.0"]
 # RAGAS evals (python -m evals.ragas.run_ragas). ragas 0.4.3 imports a module that
 # langchain-community removed after 0.3.x, so both are pinned.
-evals = ["ragas==0.4.3", "langchain-community==0.3.31", "openai>=1.60.0"]
+evals = [
+  "ragas==0.4.3",
+  "langchain-community==0.3.31",
+  "openai>=1.60.0",
+  # TruLens RAG triad (python -m evals.trulens.run_trulens)
+  "trulens-core==2.16.0",
+  "trulens-feedback==2.16.0",
+  "trulens-providers-openai==2.16.0",
+]
 
 [build-system]
 requires = ["setuptools>=68.0"]

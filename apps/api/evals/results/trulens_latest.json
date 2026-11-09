@@ -1,0 +1,112 @@
+{
+  "timestamp": "2026-11-09T02:11:45+00:00",
+  "subset": "ragas_ci",
+  "cases_scored": 7,
+  "mode": "hybrid_rerank",
+  "eval_model": "gemini-3.5-flash-lite",
+  "metrics": {
+    "context_relevance": 0.33333333333333337,
+    "groundedness": 1.0,
+    "answer_relevance": 1.0
+  },
+  "cases": [
+    {
+      "id": "benefits-deductible",
+      "answer": "The Acme Care Plus deductible for an individual is $1,000 [1].",
+      "context_relevance": 0.25,
+      "groundedness": 1.0,
+      "answer_relevance": 1.0,
+      "context_relevance_per_chunk": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ungrounded": []
+    },
+    {
+      "id": "nova-handle-time",
+      "answer": "Based on the provided documents, the target handle time for policy questions is under 3 minutes [1].\n\n**Source:**\n- [1] `project-nova-brief.txt` (\"Success metrics: 1. Reduce policy-related handle time to under 3 minutes.\")",
+      "context_relevance": 0.25,
+      "groundedness": 1.0,
+      "answer_relevance": 1.0,
+      "context_relevance_per_chunk": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ungrounded": []
+    },
+    {
+      "id": "damage-report",
+      "answer": "Damaged items must be reported within 48 hours of delivery (refund-shipping-policy.md).",
+      "context_relevance": 0.25,
+      "groundedness": 1.0,
+      "answer_relevance": 1.0,
+      "context_relevance_per_chunk": [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "ungrounded": []
+    },
+    {
+      "id": "runbook-err-4021",
+      "answer": "Based on the provided documents, for `ERR-4021: OAuth token refresh failed`, on-call engineers should:\n\n1. Re-sync the secret from the processor dashboard (because the client secret was likely rotated without updating the vault entry `payments/gateway/oauth`) [1].\n2. Restart the gateway pods [1]. \n\n*Note:* Do not fail over, as the secondary processor uses the same credentials [1].",
+      "context_relevance": 0.25,
+      "groundedness": 1.0,
+      "answer_relevance": 1.0,
+      "context_relevance_per_chunk": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ungrounded": []
+    },
+    {
+      "id": "travel-2025-hotel-cap",
+      "answer": "Based on the 2025 travel policy, the nightly hotel cap for high-cost cities (New York, San Francisco, London, Tokyo) was **$275** [1].",
+      "context_relevance": 0.5833333333333334,
+      "groundedness": 1.0,
+      "answer_relevance": 1.0,
+      "context_relevance_per_chunk": [
+        1.0,
+        0.3333333333333333,
+        1.0,
+        0.0
+      ],
+      "ungrounded": []
+    },
+    {
+      "id": "catalog-sp30-room",
+      "answer": "The SP-30 Conference Speakerphone can handle rooms of up to 12 people (product-catalog.md).",
+      "context_relevance": 0.25,
+      "groundedness": 1.0,
+      "answer_relevance": 1.0,
+      "context_relevance_per_chunk": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ungrounded": []
+    },
+    {
+      "id": "security-lost-device",
+      "answer": "Based on the provided documents, a lost or stolen device must be reported to IT within 1 hour [1].",
+      "context_relevance": 0.5,
+      "groundedness": 1.0,
+      "answer_relevance": 1.0,
+      "context_relevance_per_chunk": [
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "ungrounded": []
+    }
+  ]
+}

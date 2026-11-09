@@ -9,6 +9,7 @@ from app.config import get_settings
 from app.db import AsyncSessionLocal
 from app.models import Chunk, Document, DocumentStatus
 from app.services.llm import embed_documents
+from app.services.retrieval import qdrant_store
 
 
 def _utcnow() -> datetime:
@@ -59,6 +60,16 @@ async def ingest_document(document_id: str) -> None:
                 )
                 for i, (chunk, embedding) in enumerate(zip(chunks, embeddings, strict=True))
             )
+
+            if settings.vector_store == "qdrant":
+                # Written before the Postgres commit, so a Qdrant failure marks the document failed
+                await qdrant_store.delete_document(doc.id)
+                await qdrant_store.upsert_chunks(
+                    [
+                        qdrant_store.ChunkPoint(f"{doc.id}_{i}", doc.id, doc.filename, i, chunk, embedding)
+                        for i, (chunk, embedding) in enumerate(zip(chunks, embeddings, strict=True))
+                    ]
+                )
 
             doc.chunk_count = len(chunks)
             doc.status = DocumentStatus.ready

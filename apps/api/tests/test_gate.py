@@ -50,3 +50,11 @@ def test_ragas_drop_beyond_tolerance_fails_the_gate():
     assert _failed(rows) == ["ragas.context_precision"]
     assert "| ragas | context_precision | 0.905 | 0.755 | -0.150 | FAIL |" in _report(rows)
     assert "+0.000 | pass |" in _report(rows)  # rounding noise isn't shown as -0.000
+
+
+def test_trulens_suite_is_gated_when_the_baseline_lists_it():
+    baseline = {**BASELINE, "trulens": {"tolerance": 0.1, "metrics": {"groundedness": 1.0}}}
+    current = {**_current(), "trulens": {"groundedness": 0.8}}
+    assert _failed(check(baseline, current)) == ["trulens.groundedness"]
+    # Without it in the baseline, the gate doesn't look for it
+    assert _failed(check(BASELINE, _current())) == []

@@ -9,6 +9,7 @@ from app.db import get_db
 from app.models import Document, DocumentStatus
 from app.schemas import DocumentOut
 from app.services.ingest import ingest_document
+from app.services.retrieval import qdrant_store
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -77,6 +78,8 @@ async def delete_document(document_id: str, db: AsyncSession = Depends(get_db)) 
     if file_path.exists():
         file_path.unlink()
 
+    if settings.vector_store == "qdrant":
+        await qdrant_store.delete_document(doc.id)
     # Chunks are removed by the ON DELETE CASCADE foreign key
     await db.delete(doc)
     await db.commit()

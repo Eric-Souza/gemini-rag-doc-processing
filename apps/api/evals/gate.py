@@ -5,11 +5,13 @@ Fails (exit 1) when a metric drops more than its tolerance below the baseline:
   retrieval   hit@1 and MRR for every retrieval mode, from results/latest.json
               (python -m evals.run_evals --retrieval-only)
   ragas       mean RAGAS scores from results/ragas_latest.json (python -m evals.ragas.run_ragas)
+  trulens     mean TruLens RAG triad scores from results/trulens_latest.json
+              (python -m evals.trulens.run_trulens)
 
 Every mode is checked, not just the one the app uses: with a small corpus the reranker can
 hide a broken stage (it fixed the ranking even with keyword search returning nothing).
 Retrieval is deterministic, so its tolerance only absorbs float noise: one case falling from
-#1 to #2 (1/22 of hit@1) fails the gate. RAGAS uses an LLM judge, so it gets more slack.
+#1 to #2 (1/22 of hit@1) fails the gate. RAGAS and TruLens use an LLM judge, so they get more slack.
 
 Usage (from apps/api):
 
@@ -30,6 +32,9 @@ EVALS_DIR = Path(__file__).resolve().parent
 BASELINE_PATH = EVALS_DIR / "baseline.json"
 RETRIEVAL_RESULTS = EVALS_DIR / "results" / "latest.json"
 RAGAS_RESULTS = EVALS_DIR / "results" / "ragas_latest.json"
+TRULENS_RESULTS = EVALS_DIR / "results" / "trulens_latest.json"
+# LLM-judged suites; each one the baseline lists is gated
+JUDGE_RESULTS = {"ragas": RAGAS_RESULTS, "trulens": TRULENS_RESULTS}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -39,11 +44,16 @@ def _load(path: Path) -> dict[str, Any]:
 
 
 def _groups(baseline: dict[str, Any]) -> dict[str, tuple[float, dict[str, float]]]:
-    """Baseline metrics by gate group ("retrieval:<mode>", "ragas"), with their tolerance."""
+    """Baseline metrics by gate group ("retrieval:<mode>", "ragas", "trulens"), with their tolerance."""
     retrieval = baseline["retrieval"]
     groups = {f"retrieval:{mode}": (retrieval["tolerance"], metrics) for mode, metrics in retrieval["modes"].items()}
-    groups["ragas"] = (baseline["ragas"]["tolerance"], baseline["ragas"]["metrics"])
+    for suite in _judge_suites(baseline):
+        groups[suite] = (baseline[suite]["tolerance"], baseline[suite]["metrics"])
     return groups
+
+
+def _judge_suites(baseline: dict[str, Any]) -> list[str]:
+    return [suite for suite in JUDGE_RESULTS if suite in baseline]
 
 
 def current_values(baseline: dict[str, Any]) -> dict[str, dict[str, float]]:
@@ -56,23 +66,25 @@ def current_values(baseline: dict[str, Any]) -> dict[str, dict[str, float]]:
             "Run python -m evals.run_evals --retrieval-only without --modes."
         )
 
-    ragas = _load(RAGAS_RESULTS)
-    expected = baseline["ragas"]
-    if (ragas["subset"], ragas["cases_scored"], ragas["mode"]) != (
-        expected["subset"],
-        expected["cases_scored"],
-        expected["mode"],
-    ):
-        raise SystemExit(
-            f"ragas_latest.json scored {ragas['cases_scored']} {ragas['subset']} cases in {ragas['mode']} mode; "
-            f"the baseline uses {expected['cases_scored']} {expected['subset']} cases in {expected['mode']} mode. "
-            "Rerun python -m evals.ragas.run_ragas without --limit."
-        )
     current = {
         f"retrieval:{mode}": {m: by_mode[mode][m] for m in metrics}
         for mode, metrics in baseline["retrieval"]["modes"].items()
     }
-    current["ragas"] = {m: ragas["metrics"][m] for m in baseline["ragas"]["metrics"]}
+    for suite in _judge_suites(baseline):
+        path = JUDGE_RESULTS[suite]
+        results = _load(path)
+        expected = baseline[suite]
+        if (results["subset"], results["cases_scored"], results["mode"]) != (
+            expected["subset"],
+            expected["cases_scored"],
+            expected["mode"],
+        ):
+            raise SystemExit(
+                f"{path.name} scored {results['cases_scored']} {results['subset']} cases in {results['mode']} mode; "
+                f"the baseline uses {expected['cases_scored']} {expected['subset']} cases in {expected['mode']} mode. "
+                f"Rerun python -m evals.{suite}.run_{suite} without --limit."
+            )
+        current[suite] = {m: results["metrics"][m] for m in expected["metrics"]}
     return current
 
 
@@ -106,7 +118,8 @@ def main() -> None:
     if args.update_baseline:
         for mode in baseline["retrieval"]["modes"]:
             baseline["retrieval"]["modes"][mode] = {m: round(v, 3) for m, v in current[f"retrieval:{mode}"].items()}
-        baseline["ragas"]["metrics"] = {m: round(v, 3) for m, v in current["ragas"].items()}
+        for suite in _judge_suites(baseline):
+            baseline[suite]["metrics"] = {m: round(v, 3) for m, v in current[suite].items()}
         BASELINE_PATH.write_text(json.dumps(baseline, indent=2) + "\n", encoding="utf-8")
         print(f"Updated {BASELINE_PATH.name}")
         return

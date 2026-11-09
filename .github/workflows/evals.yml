@@ -75,6 +75,10 @@ jobs:
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U rag" --health-interval 5s --health-timeout 5s --health-retries 10
+      # The retrieval evals compare pgvector with Qdrant
+      qdrant:
+        image: qdrant/qdrant:v1.20.0
+        ports: ["6333:6333"]
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
@@ -112,6 +116,9 @@ jobs:
       - name: RAGAS evals (CI subset)
         if: steps.key.outputs.present == 'true'
         run: python -m evals.ragas.run_ragas --rpm 10
+      - name: TruLens RAG triad (CI subset)
+        if: steps.key.outputs.present == 'true'
+        run: python -m evals.trulens.run_trulens --rpm 10
       - name: Quality gate
         if: steps.key.outputs.present == 'true'
         run: python -m evals.gate
