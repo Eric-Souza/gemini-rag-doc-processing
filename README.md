@@ -14,7 +14,7 @@ FastAPI, and chat from a React TypeScript UI.
 - Database: Postgres 16 + pgvector (SQLAlchemy async + asyncpg), via Docker
 - Vector store, either one: pgvector, or [Qdrant](https://qdrant.tech) with dense + BM25 sparse vectors fused on the server (`VECTOR_STORE=qdrant`)
 - Retrieval: vector + full-text search, Reciprocal Rank Fusion, local cross-encoder reranker (`sentence-transformers`)
-- Evals: golden-set retrieval metrics and RAGAS, enforced by a GitHub Actions quality gate
+- Evals: golden-set retrieval metrics, RAGAS and the [TruLens](https://www.trulens.org) RAG triad, enforced by a GitHub Actions quality gate
 
 ## Prerequisites
 
@@ -67,6 +67,7 @@ FastAPI, and chat from a React TypeScript UI.
    .\.venv\Scripts\activate
    python -m evals.run_evals --seed --retrieval-only   # hit@1, hit@4, MRR per mode and store
    python -m evals.ragas.run_ragas                     # RAGAS on the 7-case CI subset
+   python -m evals.trulens.run_trulens                 # TruLens RAG triad on the same 7 cases
    python -m evals.gate                                # compare with evals/baseline.json
    ```
 
@@ -93,6 +94,7 @@ Uploaded files live under `apps/api/data/uploads/` (gitignored); everything else
 - Streaming tokens (SSE) to a React client
 - Langfuse traces with a span per retrieval stage, plus LLM generations with token usage; LangSmith also supported
 - Golden-set evals (chunk-level hit@k and MRR, answer contains, faithfulness) and RAGAS (faithfulness, answer relevancy, context precision, context recall)
+- TruLens RAG triad (context relevance per chunk, groundedness per answer sentence, answer relevance), judged by Gemini through TruLens's OpenAI provider. None of the three needs a reference answer, so the same checks could score live traffic
 - CI quality gate: pytest against real pgvector, then evals compared with a stored baseline
 - Google Gemini for chat and embeddings
 - Postgres + pgvector for metadata, chunks, embeddings, and the full-text index
@@ -112,6 +114,8 @@ pgvector and Qdrant on the same chunks and embeddings (22 cases, k=4):
 | hybrid + rerank | 91% | 0.936 | 91% | 0.936 |
 
 Vector search ranks every case the same in both, as it should with identical embeddings and exact search at this size. The hybrid gap is the keyword half: Qdrant's BM25 put `runbook-err-4021` first, where Postgres `ts_rank_cd` put it second. Once the reranker reorders the candidates, the two stores tie. The gate checks all six rows, so a regression in either store fails CI.
+
+The TruLens triad on the 7 CI cases (hybrid + rerank, k=4): groundedness 1.00, answer relevance 1.00, context relevance 0.33. The low score is accurate, not a judge error. Most questions here have one relevant chunk, so with k=4 one chunk gets a 1 and the other three get 0. RAGAS context precision (0.91) doesn't show this, because it's rank-weighted and the relevant chunk comes first, so trailing off-topic chunks barely count. Read together, the two scores say ranking is good but k=4 sends the model more context than these questions need. That's worth tuning (a smaller k, or a reranker score cutoff) if token cost matters.
 
 ## Out of scope
 

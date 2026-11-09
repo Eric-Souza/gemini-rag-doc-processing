@@ -39,5 +39,16 @@
       "context_precision": 0.905,
       "context_recall": 1.0
     }
+  },
+  "trulens": {
+    "subset": "ragas_ci",
+    "cases_scored": 7,
+    "mode": "hybrid_rerank",
+    "tolerance": 0.1,
+    "metrics": {
+      "context_relevance": 0.333,
+      "groundedness": 1.0,
+      "answer_relevance": 1.0
+    }
   }
 }
