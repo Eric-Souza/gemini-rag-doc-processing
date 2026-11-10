@@ -1,0 +1,60 @@
+name: kubernetes deploy
+
+# Builds both images, deploys the whole app to a throwaway kind cluster with the manifests in
+# deploy/k8s, and smoke-tests it through the web pod's /api proxy. Needs no secrets.
+on:
+  pull_request:
+    paths:
+      - "apps/**"
+      - "deploy/**"
+      - ".github/workflows/k8s.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "deploy/**"
+      - ".github/workflows/k8s.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: k8s-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NS: doc-processing
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images
+        run: |
+          docker build -t doc-processing-api:local apps/api
+          docker build -t doc-processing-web:local apps/web
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: rag
+      - name: Load images into the cluster
+        run: kind load docker-image doc-processing-api:local doc-processing-web:local --name rag
+      - name: Deploy
+        run: |
+          kubectl apply -k deploy/k8s
+          kubectl -n "$NS" rollout status statefulset/postgres --timeout=180s
+          kubectl -n "$NS" rollout status statefulset/qdrant --timeout=180s
+          kubectl -n "$NS" rollout status deployment/api --timeout=300s
+          kubectl -n "$NS" rollout status deployment/web --timeout=120s
+      - name: Smoke test
+        run: |
+          kubectl -n "$NS" port-forward svc/web 8080:80 >/dev/null 2>&1 &
+          for i in $(seq 1 30); do curl -fs localhost:8080/healthz >/dev/null && break; sleep 1; done
+          # The UI is served, the API answers through the proxy, and the API reaches Postgres
+          curl -fsS localhost:8080/ | grep -q '<div id="root">'
+          curl -fsS localhost:8080/api/health | tee /dev/stderr | jq -e '.status == "ok"'
+          curl -fsS localhost:8080/api/documents | jq -e 'type == "array"'
+      - name: Cluster state on failure
+        if: failure()
+        run: |
+          kubectl -n "$NS" get pods -o wide
+          kubectl -n "$NS" describe pods
+          kubectl -n "$NS" logs deployment/api --all-containers --tail=200

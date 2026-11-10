@@ -1,0 +1,52 @@
+# Qdrant: the optional second vector store (VECTOR_STORE=qdrant), rebuilt from Postgres when needed
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+spec:
+  selector:
+    app: qdrant
+  ports:
+    - name: http
+      port: 6333
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qdrant
+spec:
+  serviceName: qdrant
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+    spec:
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.20.0
+          ports:
+            - containerPort: 6333
+          readinessProbe:
+            httpGet: { path: /readyz, port: 6333 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /livez, port: 6333 }
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 1Gi }
+          volumeMounts:
+            - name: storage
+              mountPath: /qdrant/storage
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

@@ -1,0 +1,34 @@
+# The whole app on Kubernetes: kubectl apply -k deploy/k8s
+# Images are built locally and loaded into the cluster (see the README's Kubernetes section).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: doc-processing
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - qdrant.yaml
+  - api.yaml
+  - web.yaml
+
+# Local-only credentials, the same as docker-compose.yml. Replace them before exposing anything
+secretGenerator:
+  - name: postgres
+    literals:
+      - POSTGRES_USER=rag
+      - POSTGRES_PASSWORD=rag
+      - POSTGRES_DB=rag
+
+configMapGenerator:
+  - name: api-config
+    literals:
+      - RETRIEVAL_MODE=hybrid_rerank
+      - VECTOR_STORE=pgvector
+      - QDRANT_URL=http://qdrant:6333
+      - CORS_ORIGINS=http://localhost:8080
+
+images:
+  - name: doc-processing-api
+    newTag: local
+  - name: doc-processing-web
+    newTag: local

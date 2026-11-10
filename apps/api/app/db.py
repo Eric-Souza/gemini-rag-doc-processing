@@ -25,5 +25,8 @@ async def init_db() -> None:
     from app import models  # noqa: F401
 
     async with engine.begin() as conn:
+        # Replicas starting together (Kubernetes) would race on CREATE EXTENSION and CREATE TABLE;
+        # the lock lasts until this transaction ends, so they run one at a time
+        await conn.execute(text("SELECT pg_advisory_xact_lock(7311)"))
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)

@@ -1,0 +1,110 @@
+# FastAPI backend. Two replicas: an upload is ingested by a background task in the pod that
+# received it, so each pod only needs its own scratch volume for uploads, not a shared disk.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  strategy:
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      initContainers:
+        # The API creates its tables on startup, so it waits for Postgres instead of crash-looping
+        - name: wait-for-postgres
+          image: pgvector/pgvector:pg16
+          command: ["sh", "-c", "until pg_isready -h postgres -U \"$POSTGRES_USER\"; do sleep 2; done"]
+          envFrom:
+            - secretRef:
+                name: postgres
+      containers:
+        - name: api
+          image: doc-processing-api
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: api-config
+            - secretRef:
+                name: postgres
+          env:
+            - name: DATABASE_URL
+              value: postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
+            # Created by hand (see the README); without it the app starts and reports Gemini as not configured
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef: { name: api-secrets, key: GEMINI_API_KEY, optional: true }
+          # Loading the reranker takes a while on CPU, so liveness waits for startup first
+          startupProbe:
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests: { cpu: 250m, memory: 768Mi }
+            limits: { memory: 2Gi }
+          volumeMounts:
+            - name: uploads
+              mountPath: /data/uploads
+      volumes:
+        - name: uploads
+          emptyDir:
+            sizeLimit: 1Gi
+---
+# Keeps one API pod up through node drains and cluster upgrades
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api
+---
+# The reranker makes chat CPU-bound, so the API scales on CPU (needs metrics-server)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }

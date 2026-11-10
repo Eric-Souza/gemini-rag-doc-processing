@@ -15,6 +15,7 @@ FastAPI, and chat from a React TypeScript UI.
 - Vector store, either one: pgvector, or [Qdrant](https://qdrant.tech) with dense + BM25 sparse vectors fused on the server (`VECTOR_STORE=qdrant`)
 - Retrieval: vector + full-text search, Reciprocal Rank Fusion, local cross-encoder reranker (`sentence-transformers`)
 - Evals: golden-set retrieval metrics, RAGAS and the [TruLens](https://www.trulens.org) RAG triad, enforced by a GitHub Actions quality gate
+- Deployment: Docker images for the API and the UI (nginx), Kubernetes manifests with Kustomize (`deploy/k8s`), deployed to a [kind](https://kind.sigs.k8s.io) cluster and smoke-tested on every PR
 
 ## Prerequisites
 
@@ -73,6 +74,27 @@ FastAPI, and chat from a React TypeScript UI.
 
 7. (Optional) Local Langfuse: `docker compose -f docker-compose.langfuse.yml up -d`, then set the three `LANGFUSE_*` values shown at the top of that file and open http://localhost:3100.
 
+## Kubernetes
+
+`deploy/k8s` runs the whole app on Kubernetes: Postgres and Qdrant as StatefulSets with persistent volumes, the API as a Deployment with two replicas, and the UI on nginx, which serves the build and proxies `/api` to the API. The API image has the reranker and the BM25 model baked in, so new pods start without downloading anything. Startup, readiness and liveness probes guard each workload. The API also has a PodDisruptionBudget and a CPU HorizontalPodAutoscaler (2 to 4 replicas; the HPA needs metrics-server). Both replicas create the schema on startup, and a Postgres advisory lock makes them take turns.
+
+Locally, with [kind](https://kind.sigs.k8s.io) and kubectl:
+
+```bash
+docker build -t doc-processing-api:local apps/api
+docker build -t doc-processing-web:local apps/web
+kind create cluster --name rag
+kind load docker-image doc-processing-api:local doc-processing-web:local --name rag
+
+kubectl apply -k deploy/k8s
+# the Gemini key stays out of git; without it the app runs and /health reports Gemini as not configured
+kubectl -n doc-processing create secret generic api-secrets --from-literal=GEMINI_API_KEY=...
+kubectl -n doc-processing rollout restart deployment/api
+kubectl -n doc-processing port-forward svc/web 8080:80   # open http://localhost:8080
+```
+
+Postgres credentials and the API settings come from the generators in `deploy/k8s/kustomization.yaml`. The credentials are local-only, like the ones in `docker-compose.yml`. For a real cluster, swap them for a managed Secret and switch the Services to an Ingress. The `kubernetes deploy` workflow does the same steps on a throwaway kind cluster. It checks the UI, `/api/health` and `/api/documents` through the nginx proxy.
+
 ## Project structure
 
 ```
@@ -83,6 +105,7 @@ doc-processing-ai/
   apps/
     web/          # React + MUI frontend
     api/          # FastAPI backend (+ evals/)
+  deploy/k8s/     # Kubernetes manifests (Kustomize)
 ```
 
 Uploaded files live under `apps/api/data/uploads/` (gitignored); everything else is in Postgres.
