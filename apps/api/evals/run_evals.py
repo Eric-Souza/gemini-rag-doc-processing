@@ -196,11 +196,15 @@ def retrieval_label(store: str, mode: RetrievalMode) -> str:
     return mode.value if store == "pgvector" else f"{store}:{mode.value}"
 
 
-async def run_retrieval(cases: list[dict[str, Any]], mode: RetrievalMode, store: str = "pgvector") -> dict[str, Any]:
+async def run_retrieval(
+    cases: list[dict[str, Any]], mode: RetrievalMode, store: str = "pgvector", pacer: Pacer | None = None
+) -> dict[str, Any]:
+    pacer = pacer or Pacer(0)
     rows: list[dict[str, Any]] = []
     for case in cases:
         k = int(case.get("k", 4))
-        hits = await retrieve(case["question"], k=k, mode=mode, store=store)
+        # Each retrieval embeds the question once, and every case runs for each mode and store
+        hits = await pacer.call(retrieve, case["question"], k=k, mode=mode, store=store)
         rank = evidence_rank(hits, case["evidence"])
         rows.append(
             {
@@ -308,6 +312,12 @@ async def main() -> None:
         help="max chat requests per minute (Gemini free tier: 5; 0 disables pacing)",
     )
     parser.add_argument(
+        "--embed-rpm",
+        type=float,
+        default=90,
+        help="max query embeddings per minute in the retrieval evals (Gemini free tier: 100; 0 disables pacing)",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=0,
@@ -334,7 +344,10 @@ async def main() -> None:
         # Same chunks and embeddings as Postgres, so the two stores are compared on identical data
         print(f"Rebuilt Qdrant from {await qdrant_store.rebuild()} chunks")
     print(f"\nRetrieval: {len(cases)} cases x {len(modes)} modes x {len(stores)} stores\n")
-    retrieval_results = [await run_retrieval(cases, mode, store) for store in stores for mode in modes]
+    embed_pacer = Pacer(args.embed_rpm)
+    retrieval_results = [
+        await run_retrieval(cases, mode, store, embed_pacer) for store in stores for mode in modes
+    ]
     _print_retrieval(retrieval_results)
 
     report: dict[str, Any] = {
